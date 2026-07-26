@@ -1,0 +1,383 @@
+import asyncio
+import logging
+from datetime import datetime, timedelta
+import aiosqlite
+import os
+from aiohttp import web
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import Command, CommandStart
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters.callback_data import CallbackData
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
+
+# ==========================================
+#              SOZLAMALAR
+# ==========================================
+BOT_TOKEN = "8656369612:AAHpVfrFadGX7RQgNu7YNZAYfqP_zJFinQQ"
+ADMIN_ID = 8631477823  # O'zingizning Telegram ID raqamingiz
+CARD_NUMBER = "9860 1666 5645 6349"
+CARD_OWNER = "Kdirbaev Azizbek"
+
+# Majburiy obuna kanallari (Bot ularning barchasida ADMIN bo'lishi shart!)
+CHANNELS = [
+    "@azizakabott", 
+    
+
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+# ==========================================
+#         CALLBACK DATA FABRIKALARI
+# ==========================================
+class TariffCB(CallbackData, prefix="tariff"):
+    days: int
+    price: int
+
+class PaymentCB(CallbackData, prefix="pay"):
+    days: int
+    price: int
+    method: str
+
+class ApproveCB(CallbackData, prefix="approve"):
+    user_id: int
+    days: int
+
+class RejectCB(CallbackData, prefix="reject"):
+    user_id: int
+
+# ==========================================
+#         MA'LUMOTLAR BAZASI (SQLITE)
+# ==========================================
+async def init_db():
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                premium_until DATETIME
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS movies (
+                code INTEGER PRIMARY KEY,
+                file_id TEXT
+            )
+        """)
+        await db.commit()
+
+async def add_user(user_id):
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        await db.commit()
+
+async def is_premium(user_id) -> bool:
+    async with aiosqlite.connect("bot_database.db") as db:
+        cursor = await db.execute("SELECT premium_until FROM users WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+        if row and row[0]:
+            premium_until = datetime.fromisoformat(row[0])
+            return datetime.now() < premium_until
+        return False
+
+# ==========================================
+#          MAJBURIY OBUNA MANTIQI
+# ==========================================
+async def check_subscription(user_id: int) -> bool:
+    for channel in CHANNELS:
+        try:
+            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status in ['left', 'kicked']:
+                return False
+        except Exception:
+            return False
+    return True
+
+def get_sub_keyboard():
+    builder = []
+    for channel in CHANNELS:
+        builder.append([InlineKeyboardButton(text="Obuna bo'lish", url=f"https://t.me/{channel[1:]}")])
+    
+    builder.append([InlineKeyboardButton(text="Tekshirish", callback_data="check_sub")])
+    return InlineKeyboardMarkup(inline_keyboard=builder)
+
+main_reply_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="💎 Premium")]
+    ],
+    resize_keyboard=True
+)
+
+# ==========================================
+#               KLAVIATURALAR
+# ==========================================
+def get_tariffs_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="1 kunlik obuna - 5 000 so'm", callback_data=TariffCB(days=1, price=5000).pack())],
+        [InlineKeyboardButton(text="1 oylik obuna - 10 000 so'm", callback_data=TariffCB(days=30, price=10000).pack())],
+        [InlineKeyboardButton(text="3 oylik obuna - 20 000 so'm", callback_data=TariffCB(days=90, price=20000).pack())],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_to_start")]
+    ])
+
+def get_payment_methods_keyboard(days, price):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Karta (Avto)", callback_data=PaymentCB(days=days, price=price, method="avto").pack())],
+        [InlineKeyboardButton(text="Uzcard", callback_data=PaymentCB(days=days, price=price, method="manual").pack())],
+        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="premium_menu")]
+    ])
+
+class AdminState(StatesGroup):
+    waiting_for_broadcast = State()
+
+class PaymentState(StatesGroup):
+    waiting_for_receipt = State()
+
+@dp.message(CommandStart())
+async def start_handler(message: types.Message):
+    await add_user(message.from_user.id)
+    subscribed = await check_subscription(message.from_user.id)
+    
+    if subscribed:
+        await message.answer(
+            f"👋 Assalomu alaykum <b>{message.from_user.first_name}</b>, botimizga xush kelibsiz.\n\n"
+            f"✍️ Kino kodini yuboring...", 
+            reply_markup=main_reply_keyboard, 
+            parse_mode="HTML"
+        )
+    else:
+        text = (
+            "❌ <b>Kechirasiz, botimizdan foydalanish uchun ushbu kanallarga obuna bo'lishingiz kerak.</b>\n\n"
+            "💎 <i>Premium obuna sotib olib, kanallarga obuna bo'lmasdan foydalanishingiz mumkin.</i>"
+        )
+        await message.answer(text, reply_markup=get_sub_keyboard(), parse_mode="HTML")
+
+@dp.callback_query(F.data == "check_sub")
+async def check_sub_handler(call: types.CallbackQuery):
+    if await check_subscription(call.from_user.id):
+        await call.message.delete()
+        await call.message.answer(
+            "✅ Obuna tasdiqlandi!\n\n✍️ Kino kodini yuboring...", 
+            reply_markup=main_reply_keyboard, 
+            parse_mode="HTML"
+        )
+    else:
+        await call.answer("Barcha kanallarga obuna bo'lmadingiz!", show_alert=True)
+
+@dp.callback_query(F.data == "back_to_start")
+async def back_to_start_handler(call: types.CallbackQuery):
+    await call.message.delete()
+    fake_msg = types.Message(
+        message_id=call.message.message_id,
+        date=call.message.date,
+        chat=call.message.chat,
+        from_user=call.from_user
+    )
+    await start_handler(fake_msg)
+
+@dp.message(F.text == "💎 Premium")
+async def premium_text_handler(message: types.Message):
+    text = (
+        "💎 <b>Premium obuna</b>\n\n"
+        "Premium orqali quyidagilarga ega bo'lasiz:\n"
+        "• Kanallarga obuna bo'lmasdan kino ko'rish\n"
+        "• Reklamalarsiz foydalanish\n"
+        "• Yuqori sifatda tomosha qilish\n\n"
+        "📋 Quyidagi tariflardan birini tanlang:"
+    )
+    await message.answer(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
+
+@dp.callback_query(F.data == "premium_menu")
+async def premium_menu_handler(call: types.CallbackQuery):
+    text = (
+        "💎 <b>Premium obuna</b>\n\n"
+        "Premium orqali quyidagilarga ega bo'lasiz:\n"
+        "• Kanallarga obuna bo'lmasdan kino ko'rish\n"
+        "• Reklamalarsiz foydalanish\n"
+        "• Yuqori sifatda tomosha qilish\n\n"
+        "📋 Quyidagi tariflardan birini tanlang:"
+    )
+    try:
+        await call.message.edit_text(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
+    except:
+        await call.message.answer(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
+
+@dp.callback_query(TariffCB.filter())
+async def tariff_selected_handler(call: types.CallbackQuery, callback_data: TariffCB):
+    text = (
+        "💳 <b>To'lov tizimini tanlang</b>\n\n"
+        f"💎 Tarif: {callback_data.days} kunlik obuna\n"
+        f"💰 Narx: {callback_data.price} so'm"
+    )
+    await call.message.edit_text(text, reply_markup=get_payment_methods_keyboard(callback_data.days, callback_data.price), parse_mode="HTML")
+
+@dp.callback_query(PaymentCB.filter())
+async def payment_method_handler(call: types.CallbackQuery, callback_data: PaymentCB, state: FSMContext):
+    if callback_data.method == "manual":
+        await state.set_state(PaymentState.waiting_for_receipt)
+        await state.update_data(days=callback_data.days, price=callback_data.price)
+        
+        text = (
+            "💎 <b>PREMIUM OBUNA — TO'LOV MA'LUMOTLARI</b>\n\n"
+            f"📦 Tarif: {callback_data.days} kunlik obuna\n"
+            f"💳 Karta raqami: <code>{CARD_NUMBER}</code>\n"
+            f"👤 Karta egasi: {CARD_OWNER}\n"
+            f"💰 To'lov summa: {callback_data.price} so'm\n\n"
+            "⚠️ <b>Diqqat:</b>\n"
+            "⏱ To'lovni amalga oshirish uchun 5 daqiqa vaqt beriladi.\n"
+            "📸 <b>To'lovni amalga oshirib, chekni (skrinshotni) shu botga rasm ko'rinishida yuboring!</b>"
+        )
+        back_btn = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Orqaga", callback_data=TariffCB(days=callback_data.days, price=callback_data.price).pack())]])
+        await call.message.edit_text(text, reply_markup=back_btn, parse_mode="HTML")
+    else:
+        await call.answer("Avto to'lov tizimi tez orada ulanadi!", show_alert=True)
+
+@dp.message(PaymentState.waiting_for_receipt, F.photo)
+async def receipt_received_handler(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    days = data.get("days", 30)
+    price = data.get("price", 0)
+    photo_file_id = message.photo[-1].file_id
+    
+    admin_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=ApproveCB(user_id=message.from_user.id, days=days).pack()),
+            InlineKeyboardButton(text="❌ Rad etish", callback_data=RejectCB(user_id=message.from_user.id).pack())
+        ]
+    ])
+    
+    caption = (
+        "💳 <b>Yangi to'lov cheki keldi!</b>\n\n"
+        f"👤 Foydalanuvchi: {message.from_user.full_name}\n"
+        f"🆔 ID: <code>{message.from_user.id}</code>\n"
+        f"📦 Tarif: {days} kunlik\n"
+        f"💰 Summa: {price} so'm"
+    )
+    
+    await bot.send_photo(chat_id=ADMIN_ID, photo=photo_file_id, caption=caption, reply_markup=admin_kb, parse_mode="HTML")
+    await message.answer("✅ <b>Chekingiz qabul qilindi!</b>\nAdminlar tekshirib chiqquncha kuting.", parse_mode="HTML", reply_markup=main_reply_keyboard)
+    await state.clear()
+
+@dp.callback_query(ApproveCB.filter(), F.from_user.id == ADMIN_ID)
+async def approve_payment_handler(call: types.CallbackQuery, callback_data: ApproveCB):
+    user_id = callback_data.user_id
+    days = callback_data.days
+    
+    now = datetime.now()
+    async with aiosqlite.connect("bot_database.db") as db:
+        cursor = await db.execute("SELECT premium_until FROM users WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+        
+        if row and row[0]:
+            current_expiry = datetime.fromisoformat(row[0])
+            if current_expiry > now:
+                new_expiry = current_expiry + timedelta(days=days)
+            else:
+                new_expiry = now + timedelta(days=days)
+        else:
+            new_expiry = now + timedelta(days=days)
+        
+        await db.execute("UPDATE users SET premium_until = ? WHERE user_id = ?", (new_expiry.isoformat(), user_id))
+        await db.commit()
+        
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=f"🎉 <b>Tabriklaymiz! To'lovingiz tasdiqlandi.</b>\nSizga {days} kunlik Premium obuna berildi. Endi kino kodlarini yuborishingiz mumkin!",
+            parse_mode="HTML"
+        )
+    except Exception:
+        pass
+        
+    await call.message.edit_caption(caption=call.message.caption + "\n\n<b>✅ TASDIQLANDI</b>", parse_mode="HTML")
+    await call.answer("To'lov tasdiqlandi va foydalanuvchiga premium berildi!", show_alert=True)
+
+@dp.callback_query(RejectCB.filter(), F.from_user.id == ADMIN_ID)
+async def reject_payment_handler(call: types.CallbackQuery, callback_data: RejectCB):
+    user_id = callback_data.user_id
+    
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text="❌ <b>Kechirasiz, to'lov chekingiz rad etildi.</b>\nIltimos, to'g'ri chek yuborganingizga ishonch hosil qiling.",
+            parse_mode="HTML"
+        )
+    except Exception:
+        pass
+        
+    await call.message.edit_caption(caption=call.message.caption + "\n\n<b>❌ RAD ETILDI</b>", parse_mode="HTML")
+    await call.answer("To'lov rad etildi.", show_alert=True)
+
+@dp.message(F.text.regexp(r'^\d+$'))
+async def find_movie_handler(message: types.Message):
+    movie_code = int(message.text)
+    
+    async with aiosqlite.connect("bot_database.db") as db:
+        cursor = await db.execute("SELECT file_id FROM movies WHERE code = ?", (movie_code,))
+        row = await cursor.fetchone()
+        
+    if not row:
+        await message.reply("❌ Kino kodini noto'g'ri yubordingiz!")
+        return
+
+    if not await is_premium(message.from_user.id):
+        text = (
+            "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun</b>\n\n"
+            "❗ <b>Kinoni ko'rish uchun Premium obuna sotib oling.</b>"
+        )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💎 Premium", callback_data="premium_menu")]
+        ])
+        await message.reply(text, reply_markup=kb, parse_mode="HTML")
+        return
+
+    await message.reply_video(video=row[0], caption=f"🎬 Kino kodi: {movie_code}\n\n🤖 @{bot._me.username}")
+
+@dp.message(F.video & (F.from_user.id == ADMIN_ID))
+async def add_movie_handler(message: types.Message):
+    if not message.caption or not message.caption.isdigit():
+        await message.reply("❌ Kino qo'shish uchun video bilan birga uning kodini (faqat raqam) yozib yuboring!")
+        return
+    
+    movie_code = int(message.caption)
+    file_id = message.video.file_id
+    
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute("INSERT OR REPLACE INTO movies (code, file_id) VALUES (?, ?)", (movie_code, file_id))
+        await db.commit()
+        
+    await message.reply(f"✅ Kino bazaga qo'shildi!\nKodi: {movie_code}")
+
+@dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
+async def admin_panel_handler(message: types.Message):
+    btn = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
+    ])
+    await message.answer("👨‍💻 <b>Admin panelga xush kelibsiz!</b>\n\nQuyidagi menyudan kerakli bo'limni tanlang:", reply_markup=btn, parse_mode="HTML")
+
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def web_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+async def main():
+    await init_db()
+    bot._me = await bot.get_me() 
+    print(f"Bot ishga tushdi: @{bot._me.username}")
+    
+    # Render serveri uchun veb-serverni yoqamiz
+    await web_server()
+    
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
