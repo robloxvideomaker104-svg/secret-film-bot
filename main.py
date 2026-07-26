@@ -24,7 +24,7 @@ CARD_OWNER = "Kdirbaev Azizbek"
 CHANNELS = [
     "@azizakabott", 
     
-
+]
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
