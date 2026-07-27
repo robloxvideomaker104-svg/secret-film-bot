@@ -124,7 +124,7 @@ class PaymentState(StatesGroup):
     waiting_for_receipt = State()
 
 # ==========================================
-#          FOYdALANUVCHI HANDLERLARI
+#          FOYDALANUVCHI HANDLERLARI
 # ==========================================
 @dp.message(CommandStart())
 async def start_handler(message: types.Message):
@@ -314,7 +314,7 @@ async def find_movie_handler(message: types.Message):
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         text = (
             "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun</b>\n\n"
-            "❗ <b>Kinoni ko'rish uchun Premium obuna sotib oling.</b>"
+            "❗ <b>Premium ga obuna bo'ling.</b>"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="💎 Premium", callback_data="premium_menu")]
