@@ -124,7 +124,7 @@ class PaymentState(StatesGroup):
     waiting_for_receipt = State()
 
 # ==========================================
-#          FOYDALANUVCHI HANDLERLARI
+#          FOYdALANUVCHI HANDLERLARI
 # ==========================================
 @dp.message(CommandStart())
 async def start_handler(message: types.Message):
@@ -296,7 +296,7 @@ async def reject_payment_handler(call: types.CallbackQuery, callback_data: Rejec
     await call.message.edit_caption(caption=call.message.caption + "\n\n<b>❌ RAD ETILDI</b>", parse_mode="HTML")
     await call.answer("To'lov rad etildi.", show_alert=True)
 
-# Kino qidirish (Bazada bor kod kiritilganda ishlaydigan qism)
+# Kino qidirish
 @dp.message(F.text.regexp(r'^\d+$'))
 async def find_movie_handler(message: types.Message):
     movie_code = int(message.text)
@@ -307,17 +307,17 @@ async def find_movie_handler(message: types.Message):
         
     # Agar kod bazada umuman bo'lmasa:
     if not row:
-        await message.reply("❌ Kino kodi noto'g'ri! Bunday kodli kino topilmadi.")
+        await message.reply("❌ Kino kodini noto'g'ri yubordingiz!")
         return
 
     # Agar kod to'g'ri (bazada bor) lekin foydalanuvchida Premium yo'q bo'lsa:
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         text = (
-            "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun!</b>\n\n"
-            "❗ <b>Kinoni ko'rish uchun quyidagi tugmani bosib Premiumga obuna bo'ling.</b>"
+            "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun</b>\n\n"
+            "❗ <b>Kinoni ko'rish uchun Premium obuna sotib oling.</b>"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 Premiumga obuna bo'lish", callback_data="premium_menu")]
+            [InlineKeyboardButton(text="💎 Premium", callback_data="premium_menu")]
         ])
         await message.reply(text, reply_markup=kb, parse_mode="HTML")
         return
