@@ -19,7 +19,7 @@ ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
 CARD_NUMBER = "9860 1666 5645 6349"
 CARD_OWNER = "Kdirbaev Azizbek"
 
-# Majburiy obuna kanallari (Bot ularning barchasida ADMIN bo'lishi shart!)
+# Majburiy obuna kanallari
 CHANNELS = [
     "@azizakabott", 
 ]
@@ -195,7 +195,6 @@ async def premium_menu_handler(call: types.CallbackQuery):
     except:
         await call.message.answer(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
 
-# Tarif tanlanganda to'g'ridan-to'g'ri karta ma'lumotlarini chiqarish
 @dp.callback_query(TariffCB.filter())
 async def tariff_selected_handler(call: types.CallbackQuery, callback_data: TariffCB, state: FSMContext):
     await state.update_data(days=callback_data.days, price=callback_data.price)
@@ -297,7 +296,7 @@ async def reject_payment_handler(call: types.CallbackQuery, callback_data: Rejec
     await call.message.edit_caption(caption=call.message.caption + "\n\n<b>❌ RAD ETILDI</b>", parse_mode="HTML")
     await call.answer("To'lov rad etildi.", show_alert=True)
 
-# Kino qidirish (Premium tekshiruvi bilan)
+# Kino qidirish (Bazada bor kod kiritilganda ishlaydigan qism)
 @dp.message(F.text.regexp(r'^\d+$'))
 async def find_movie_handler(message: types.Message):
     movie_code = int(message.text)
@@ -306,22 +305,24 @@ async def find_movie_handler(message: types.Message):
         cursor = await db.execute("SELECT file_id FROM movies WHERE code = ?", (movie_code,))
         row = await cursor.fetchone()
         
+    # Agar kod bazada umuman bo'lmasa:
     if not row:
-        await message.reply("❌ Kino kodini noto'g'ri yubordingiz!")
+        await message.reply("❌ Kino kodi noto'g'ri! Bunday kodli kino topilmadi.")
         return
 
-    # Premium yo'q bo'lsa
+    # Agar kod to'g'ri (bazada bor) lekin foydalanuvchida Premium yo'q bo'lsa:
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         text = (
             "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun!</b>\n\n"
-            "❗ <b>Kinoni ko'rish uchun quyidagi tugmani bosib Premium obuna sotib oling.</b>"
+            "❗ <b>Kinoni ko'rish uchun quyidagi tugmani bosib Premiumga obuna bo'ling.</b>"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 Premium sotib olish", callback_data="premium_menu")]
+            [InlineKeyboardButton(text="💎 Premiumga obuna bo'lish", callback_data="premium_menu")]
         ])
         await message.reply(text, reply_markup=kb, parse_mode="HTML")
         return
 
+    # Agar foydalanuvchida Premium bo'lsa yoki admin bo'lsa, kinoni yuboramiz:
     await message.reply_video(video=row[0], caption=f"🎬 Kino kodi: {movie_code}\n\n🤖 @{bot._me.username}")
 
 # ==========================================
