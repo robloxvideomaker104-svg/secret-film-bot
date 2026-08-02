@@ -24,11 +24,6 @@ CHANNELS = [
     "@azizakabott", 
 ]
 
-# 2 ta zayafka kanal ID raqamlari
-REQUEST_CHANNELS = [
-    -1004433350429,
-    -1003822759522
-]
 
 # ==========================================
 #   ESKI PREMIUM FOYDALANUVCHILARNI TIKLASH
