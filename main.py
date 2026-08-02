@@ -19,16 +19,17 @@ ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
 CARD_NUMBER = "9860 1666 5645 6349"
 CARD_OWNER = "AZIZBEK K"
 
-# Oddiy majburiy obuna kanallari
+# Majburiy obuna kanallari
 CHANNELS = [
     "@azizakabott", 
 ]
-
 
 # ==========================================
 #   ESKI PREMIUM FOYDALANUVCHILARNI TIKLASH
 # ==========================================
 RESTORE_PREMIUMS = {
+    6995215348: 1,
+    7357749954: 30,
     8155884555: 90,
     5155932471: 1,
     7731796910: 1,
@@ -191,8 +192,7 @@ RESTORE_PREMIUMS = {
     8576661469: 30,
     8134930963: 30,
     8711049823: 30,
-    5248274740: 1,
-    7357749954: 30
+    5248274740: 1
 }
 
 logging.basicConfig(level=logging.INFO)
@@ -210,6 +210,9 @@ class ApproveCB(CallbackData, prefix="approve"):
 class RejectCB(CallbackData, prefix="reject"):
     user_id: int
 
+class BroadcastState(StatesGroup):
+    waiting_for_message = State()
+
 # ==========================================
 #        MA'LUMOTLAR BAZASI (SQLITE)
 # ==========================================
@@ -226,13 +229,6 @@ async def init_db():
                 code INTEGER PRIMARY KEY,
                 file_id TEXT,
                 views INTEGER DEFAULT 0
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS joined_requests (
-                user_id INTEGER,
-                channel_id TEXT,
-                PRIMARY KEY (user_id, channel_id)
             )
         """)
         await db.commit()
@@ -262,21 +258,8 @@ async def is_premium(user_id) -> bool:
         return False
 
 # ==========================================
-#          MAJBURIY OBUNA VA ZAYAFKA
+#          MAJBURIY OBUNA TEKSHIRISH
 # ==========================================
-@dp.chat_join_request()
-async def chat_join_request_handler(chat_join: types.ChatJoinRequest):
-    try:
-        await bot.approve_chat_join_request(chat_id=chat_join.chat.id, user_id=chat_join.from_user.id)
-        async with aiosqlite.connect("bot_database.db") as db:
-            await db.execute(
-                "INSERT OR IGNORE INTO joined_requests (user_id, channel_id) VALUES (?, ?)",
-                (chat_join.from_user.id, str(chat_join.chat.id))
-            )
-            await db.commit()
-    except Exception:
-        pass
-
 async def check_subscription(user_id: int) -> bool:
     for channel in CHANNELS:
         try:
@@ -285,29 +268,12 @@ async def check_subscription(user_id: int) -> bool:
                 return False
         except Exception:
             return False
-            
-    for channel in REQUEST_CHANNELS:
-        try:
-            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status in ['left', 'kicked']:
-                async with aiosqlite.connect("bot_database.db") as db:
-                    cursor = await db.execute(
-                        "SELECT 1 FROM joined_requests WHERE user_id = ? AND channel_id = ?",
-                        (user_id, str(channel))
-                    )
-                    if not await cursor.fetchone():
-                        return False
-        except Exception:
-            return False
-            
     return True
 
 def get_sub_keyboard():
     builder = []
     for channel in CHANNELS:
         builder.append([InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url=f"https://t.me/{channel[1:]}")])
-    for channel in REQUEST_CHANNELS:
-        builder.append([InlineKeyboardButton(text="📥 So'rov yuborish (Zayafka)", url=f"https://t.me/c/{str(channel)[4:]}/1")])
     
     builder.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
@@ -341,7 +307,7 @@ async def start_handler(message: types.Message):
             parse_mode="HTML"
         )
     else:
-        text = "❌ <b>Kechirasiz, botimizdan foydalanish uchun quyidagi kanallarga obuna bo'lishingiz kerak.</b>"
+        text = "❌ <b>Kechirasiz, botimizdan foydalanish uchun quyidagi kanalga obuna bo'lishingiz kerak.</b>"
         await message.answer(text, reply_markup=get_sub_keyboard(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "check_sub")
@@ -350,7 +316,7 @@ async def check_sub_handler(call: types.CallbackQuery):
         await call.message.delete()
         await call.message.answer("✅ Obuna tasdiqlandi!\n\n✍️ Kino kodini yuboring...", reply_markup=main_reply_keyboard, parse_mode="HTML")
     else:
-        await call.answer("Barcha kanallarga obuna bo'lmadingiz yoki zayafka tasdiqlanmadi!", show_alert=True)
+        await call.answer("Kanalga obuna bo'lmadingiz!", show_alert=True)
 
 @dp.callback_query(F.data == "back_to_start")
 async def back_to_start_handler(call: types.CallbackQuery):
@@ -520,6 +486,41 @@ async def admin_stats_handler(call: types.CallbackQuery):
         f"👀 Jami kino ko'rishlar soni: <b>{views_sum}</b> marta"
     )
     await call.message.edit_text(text, parse_mode="HTML")
+
+# ==========================================
+#          XABAR TARQATISH (BROADCAST)
+# ==========================================
+@dp.callback_query(F.data == "admin_broadcast", F.from_user.id == ADMIN_ID)
+async def admin_broadcast_start(call: types.CallbackQuery, state: FSMContext):
+    await state.set_state(BroadcastState.waiting_for_message)
+    await call.message.answer("📢 Barcha foydalanuvchilarga yubormoqchi bo'lgan xabaringizni yuboring (matn, rasm, video va hokazo):")
+    await call.answer()
+
+@dp.message(BroadcastState.waiting_for_message, F.from_user.id == ADMIN_ID)
+async def admin_broadcast_process(message: types.Message, state: FSMContext):
+    await state.clear()
+    status_msg = await message.answer("⏳ Xabar tarqatish boshlandi...")
+    
+    async with aiosqlite.connect("bot_database.db") as db:
+        cursor = await db.execute("SELECT user_id FROM users")
+        users = await cursor.fetchall()
+    
+    success = 0
+    failed = 0
+    for (uid,) in users:
+        try:
+            await message.send_copy(chat_id=uid)
+            success += 1
+            await asyncio.sleep(0.05)  # Telegram limitidan o'tmaslik uchun kichik tanaffus
+        except Exception:
+            failed += 1
+            
+    await status_msg.edit_text(
+        f"✅ <b>Xabar tarqatish yakunlandi!</b>\n\n"
+        f"📤 Yuborildi: <b>{success}</b> ta\n"
+        f"❌ Xatolik (botni bloklaganlar): <b>{failed}</b> ta",
+        parse_mode="HTML"
+    )
 
 # ==========================================
 #          RENDER WEBSERVER & MAIN
