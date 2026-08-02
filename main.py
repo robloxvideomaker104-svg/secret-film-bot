@@ -24,10 +24,10 @@ CHANNELS = [
     "@azizakabott", 
 ]
 
-# 2 ta zayafka (so'rov yuboriladigan) kanal
+# 2 ta zayafka kanal ID raqamlari
 REQUEST_CHANNELS = [
-    "@zayafka_kanal_1",  # 1-zayafka kanal
-    "@zayafka_kanal_2"   # 2-zayafka kanal
+    -1004433350429,
+    -1003822759522
 ]
 
 # ==========================================
@@ -241,7 +241,7 @@ async def init_db():
         """)
         await db.commit()
 
-        # Avtomatik ravishda eski premium foydalanuvchilarni bazaga yozish/yangilash
+        # Eski premium foydalanuvchilarni tiklash
         now = datetime.now()
         for uid, days in RESTORE_PREMIUMS.items():
             expiry = now + timedelta(days=days)
@@ -311,7 +311,7 @@ def get_sub_keyboard():
     for channel in CHANNELS:
         builder.append([InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url=f"https://t.me/{channel[1:]}")])
     for channel in REQUEST_CHANNELS:
-        builder.append([InlineKeyboardButton(text="📥 So'rov yuborish (Zayafka)", url=f"https://t.me/{channel[1:]}")])
+        builder.append([InlineKeyboardButton(text="📥 So'rov yuborish (Zayafka)", url=f"https://t.me/c/{str(channel)[4:]}/1")])
     
     builder.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
