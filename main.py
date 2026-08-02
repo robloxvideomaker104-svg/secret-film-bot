@@ -191,7 +191,8 @@ RESTORE_PREMIUMS = {
     8576661469: 30,
     8134930963: 30,
     8711049823: 30,
-    5248274740: 1
+    5248274740: 1,
+    7357749954: 30
 }
 
 logging.basicConfig(level=logging.INFO)
