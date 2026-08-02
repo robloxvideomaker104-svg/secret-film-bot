@@ -258,6 +258,34 @@ async def is_premium(user_id) -> bool:
         return False
 
 # ==========================================
+#          ADMIN PREMIUM BERISH KOMANDASI (/prem)
+# ==========================================
+@dp.message(Command("prem"), F.from_user.id == ADMIN_ID)
+async def admin_set_premium(message: types.Message):
+    args = message.text.split()
+    if len(args) != 3 or not args[1].isdigit() or not args[2].isdigit():
+        await message.reply("❌ Xato format!\nIshlatilishi: <code>/prem user_id kun</code>\nMisol: <code>/prem 6995215348 30</code>", parse_mode="HTML")
+        return
+    
+    uid = int(args[1])
+    days = int(args[2])
+    now = datetime.now()
+    expiry = now + timedelta(days=days)
+    
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute(
+            "INSERT INTO users (user_id, premium_until) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET premium_until = ?",
+            (uid, expiry.isoformat(), expiry.isoformat())
+        )
+        await db.commit()
+    
+    await message.reply(f"✅ <code>{uid}</code> ID raqamli foydalanuvchiga {days} kunlik Premium berildi!", parse_mode="HTML")
+    try:
+        await bot.send_message(uid, f"🎉 Sizga admin tomonidan {days} kunlik Premium obuna taqdim etildi!")
+    except:
+        pass
+
+# ==========================================
 #          MAJBURIY OBUNA TEKSHIRISH
 # ==========================================
 async def check_subscription(user_id: int) -> bool:
