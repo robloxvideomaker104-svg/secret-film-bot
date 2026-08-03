@@ -19,8 +19,7 @@ ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
 CARD_NUMBER = "9860 1666 5645 6349"
 CARD_OWNER = "AZIZBEK K"
 
-# Majburiy obuna va zayafka kanallari 
-# DIQQAT: Bu yerda faqat KANAL yoki GURUH bo'lishi kerak! (Bot username yozmang)
+# Majburiy obuna kanallari
 CHANNELS = [
     "@azizakabott",  # <-- Haqiqiy kanal username yozing (masalan: @dono_kino)
     -1004433350429, 
@@ -33,15 +32,6 @@ CHANNEL_LINKS = {
     -1004433350429: "https://t.me/+CAaOszXRNudkZmMy", 
     -1003822759522: "https://t.me/+iHpCgbHqot83Y2M6"  
 }
-
-# Namuna uchun stiker ID
-DEFAULT_STICKER = "CAACAgIAAxkBAAE..."
-
-async def send_safe_sticker(chat_id, sticker_id=DEFAULT_STICKER):
-    try:
-        await bot.send_sticker(chat_id=chat_id, sticker=sticker_id)
-    except Exception:
-        pass
 
 # ==========================================
 #   ESKI PREMIUM FOYDALANUVCHILARNI TIKLASH
@@ -250,13 +240,6 @@ async def init_db():
                 views INTEGER DEFAULT 0
             )
         """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS join_requests (
-                user_id INTEGER,
-                chat_id TEXT,
-                PRIMARY KEY (user_id, chat_id)
-            )
-        """)
         await db.commit()
 
         now = datetime.now()
@@ -311,60 +294,24 @@ async def admin_set_premium(message: types.Message):
         pass
 
 # ==========================================
-#    ZAYAFKANI BAZAGA YOZISH (QABUL QILMASDAN)
-# ==========================================
-@dp.chat_join_request()
-async def chat_join_request_handler(chat_join: types.ChatJoinRequest):
-    async with aiosqlite.connect("bot_database.db") as db:
-        await db.execute(
-            "INSERT OR IGNORE INTO join_requests (user_id, chat_id) VALUES (?, ?)",
-            (chat_join.from_user.id, str(chat_join.chat.id))
-        )
-        await db.commit()
-
-# ==========================================
-#      QAT'IY OBUNA VA ZAYAFKA TEKSHIRISH
+#          MAJBURIY OBUNA TEKSHIRISH
 # ==========================================
 async def check_subscription(user_id: int) -> bool:
-    # Admin har doim o'tishi uchun (xohlasangiz bu qatorni olib tashlashingiz mumkin)
-    if user_id == ADMIN_ID:
-        return True
-
-    async with aiosqlite.connect("bot_database.db") as db:
-        for channel in CHANNELS:
-            is_subbed = False
-            
-            # 1. Obuna bo'lganligini tekshirish
-            try:
-                member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-                if member.status in ['member', 'administrator', 'creator']:
-                    is_subbed = True
-            except Exception:
-                pass
-            
-            # 2. Agar a'zo bo'lmasa, zayafka (so'rov) tashlaganini tekshirish
-            if not is_subbed:
-                cursor = await db.execute(
-                    "SELECT 1 FROM join_requests WHERE user_id = ? AND chat_id = ?",
-                    (user_id, str(channel))
-                )
-                row = await cursor.fetchone()
-                if row:
-                    is_subbed = True
-            
-            # Agar bittagina kanalda ham obuna yoki zayafka bo'lmasa -> DARHOL FALSE QAYTARADI
-            if not is_subbed:
+    for channel in CHANNELS:
+        try:
+            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status in ['left', 'kicked']:
                 return False
-                
+        except Exception:
+            return False
     return True
 
 def get_sub_keyboard():
     builder = []
-    for idx, channel in enumerate(CHANNELS, start=1):
-        link = CHANNEL_LINKS.get(channel, "https://t.me/")
-        builder.append([InlineKeyboardButton(text=f"📢 {idx}-Kanalga obuna / So'rov yuborish", url=link)])
+    for channel in CHANNELS:
+        builder.append([InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url=f"https://t.me/{channel[1:]}")])
     
-    builder.append([InlineKeyboardButton(text="🔄 Tekshirish", callback_data="check_sub")])
+    builder.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
 
 main_reply_keyboard = ReplyKeyboardMarkup(
@@ -390,7 +337,6 @@ class PaymentState(StatesGroup):
 async def start_handler(message: types.Message):
     await add_user(message.from_user.id)
     if await check_subscription(message.from_user.id):
-        await send_safe_sticker(message.from_user.id)
         await message.answer(
             f"👋 <b>Assalomu alaykum, {message.from_user.first_name}!</b>\n\n"
             "🤖 <b>Botimizga xush kelibsiz. Kinolarni topish uchun kino kodini yuboring:</b> 👇", 
@@ -398,17 +344,13 @@ async def start_handler(message: types.Message):
             parse_mode="HTML"
         )
     else:
-        text = (
-            "❌ <b>DIQQAT! BOTDAN FOYDALANIB BO'LMAYDI!</b>\n\n"
-            "<b>Botimizning barcha imkoniyatlaridan foydalanish uchun quyidagi homiy kanallarga obuna bo'ling yoki zayafka tashlang:</b> 👇"
-        )
+        text = "❌ <b>DIQQAT! Botimizdan foydalanish uchun quyidagi kanalga obuna bo'lishingiz kerak:</b> 👇"
         await message.answer(text, reply_markup=get_sub_keyboard(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "check_sub")
 async def check_sub_handler(call: types.CallbackQuery):
     if await check_subscription(call.from_user.id):
         await call.message.delete()
-        await send_safe_sticker(call.from_user.id)
         await call.message.answer(
             "✅ <b>Obunangiz tasdiqlandi!</b>\n\n"
             "🎬 <b>Endi kino kodini yuborishingiz mumkin:</b> 👇", 
@@ -416,7 +358,7 @@ async def check_sub_handler(call: types.CallbackQuery):
             parse_mode="HTML"
         )
     else:
-        await call.answer("❌ Siz hali hamma kanallarga obuna bo'lmadingiz yoki zayafka tashlamadingiz!", show_alert=True)
+        await call.answer("❌ Siz hali kanalga obuna bo'lmadingiz!", show_alert=True)
 
 @dp.callback_query(F.data == "back_to_start")
 async def back_to_start_handler(call: types.CallbackQuery):
@@ -426,22 +368,15 @@ async def back_to_start_handler(call: types.CallbackQuery):
 
 @dp.message(F.text == "💎 Premium obuna")
 async def premium_text_handler(message: types.Message):
-    if not await check_subscription(message.from_user.id):
-        await message.answer("❌ Avval barcha kanallarga obuna bo'ling!", reply_markup=get_sub_keyboard())
-        return
     text = (
         "💎 <b>PREMIUM OBUNA MARKAZI</b>\n\n"
         "✨ <b>Premium foydalanuvchilar barcha kinolarni cheklovsiz va reklamasiz tomosha qilishadi!</b>\n\n"
         "👇 <b>Quyidagi tariflardan birini tanlang:</b>"
     )
-    await send_safe_sticker(message.from_user.id)
     await message.answer(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "premium_menu")
 async def premium_menu_handler(call: types.CallbackQuery):
-    if not await check_subscription(call.from_user.id):
-        await call.message.answer("❌ Avval barcha kanallarga obuna bo'ling!", reply_markup=get_sub_keyboard())
-        return
     text = (
         "💎 <b>PREMIUM OBUNA MARKAZI</b>\n\n"
         "✨ <b>Premium foydalanuvchilar barcha kinolarni cheklovsiz va reklamasiz tomosha qilishadi!</b>\n\n"
@@ -508,7 +443,6 @@ async def approve_payment_handler(call: types.CallbackQuery, callback_data: Appr
         await db.execute("UPDATE users SET premium_until = ? WHERE user_id = ?", (new_expiry.isoformat(), callback_data.user_id))
         await db.commit()
     try:
-        await send_safe_sticker(callback_data.user_id)
         await bot.send_message(callback_data.user_id, f"🎉 <b>Tabriklaymiz! To'lovingiz tasdiqlandi va sizga {callback_data.days} kunlik Premium berildi!</b> ✨", parse_mode="HTML")
     except:
         pass
@@ -567,7 +501,7 @@ async def add_movie_handler(message: types.Message):
 async def find_movie_handler(message: types.Message):
     if not await check_subscription(message.from_user.id):
         await message.answer(
-            "❌ <b>DIQQAT! Botdan foydalanish uchun kanallarga obuna bo'ling yoki so'rov yuboring:</b> 👇", 
+            "❌ <b>DIQQAT! Botdan foydalanish uchun kanalga obuna bo'ling:</b> 👇", 
             reply_markup=get_sub_keyboard(), 
             parse_mode="HTML"
         )
@@ -588,7 +522,6 @@ async def find_movie_handler(message: types.Message):
 
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="💎 Premium obuna sotib olish", callback_data="premium_menu")]])
-        await send_safe_sticker(message.from_user.id)
         await message.reply("🔒 <b>Ushbu kino faqat Premium foydalanuvchilar uchun mo'ljallangan!</b>", reply_markup=kb, parse_mode="HTML")
         return
 
