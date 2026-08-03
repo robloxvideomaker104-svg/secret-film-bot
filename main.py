@@ -26,11 +26,11 @@ CHANNELS = [
     -1003822759522
 ]
 
-# Kanallarning tugma uchun havolalari (ID lar uchun o'z havolangizni yozib qo'ying)
+# Kanallarning tugma uchun havolalari
 CHANNEL_LINKS = {
     "@azizakabott": "https://t.me/azizakabott",
-    -1004433350429: "https://t.me/+iHpCgbHqot83Y2M6", # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
-    -1003822759522: "https://t.me/+CAaOszXRNudkZmMy"  # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
+    -1004433350429: "https://t.me/+CAaOszXRNudkZmMy", # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
+    -1003822759522: "https://t.me/+iHpCgbHqot83Y2M6"  # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
 }
 
 # Namuna uchun stiker ID
@@ -250,6 +250,13 @@ async def init_db():
                 views INTEGER DEFAULT 0
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS join_requests (
+                user_id INTEGER,
+                chat_id TEXT,
+                PRIMARY KEY (user_id, chat_id)
+            )
+        """)
         await db.commit()
 
         now = datetime.now()
@@ -304,33 +311,54 @@ async def admin_set_premium(message: types.Message):
         pass
 
 # ==========================================
-#    ZAYAFKA (KANALGA SO'ROV) TIZIMI
+#    ZAYAFKA (SO'ROV) QABUL QILMASDAN SAQLASH
 # ==========================================
 @dp.chat_join_request()
 async def chat_join_request_handler(chat_join: types.ChatJoinRequest):
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO join_requests (user_id, chat_id) VALUES (?, ?)",
+            (chat_join.from_user.id, str(chat_join.chat.id))
+        )
+        await db.commit()
     try:
-        await chat_join.approve()
         await send_safe_sticker(chat_join.from_user.id)
         await bot.send_message(
             chat_join.from_user.id,
-            "🎉 <b>Tabriklaymiz! Kanalimizga yuborgan obuna so'rovingiz avtomatik tasdiqlandi.</b>\n\n"
-            "🎬 <b>Endi botimizdan to'liq foydalanishingiz mumkin! Kino kodini yuboring:</b>",
+            "🎉 <b>Kanalga obuna so'rovingiz qabul qilindi!</b>\n\n"
+            "🔄 Endi botga qaytib <b>«🔄 Tekshirish»</b> tugmasini bosing:",
             parse_mode="HTML"
         )
     except Exception:
         pass
 
 # ==========================================
-#          MAJBURIY OBUNA TEKSHIRISH
+#          OBUNA VA ZAYAFKANI TEKSHIRISH
 # ==========================================
 async def check_subscription(user_id: int) -> bool:
-    for channel in CHANNELS:
-        try:
-            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status in ['left', 'kicked']:
+    async with aiosqlite.connect("bot_database.db") as db:
+        for channel in CHANNELS:
+            is_subbed = False
+            # 1. Haqiqiy a'zolikni tekshirish
+            try:
+                member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+                if member.status in ['member', 'administrator', 'creator']:
+                    is_subbed = True
+            except Exception:
+                pass
+            
+            # 2. Agar a'zo bo'lmasa, zayafka tashlaganini bazadan tekshirish
+            if not is_subbed:
+                cursor = await db.execute(
+                    "SELECT 1 FROM join_requests WHERE user_id = ? AND chat_id = ?",
+                    (user_id, str(channel))
+                )
+                row = await cursor.fetchone()
+                if row:
+                    is_subbed = True
+            
+            if not is_subbed:
                 return False
-        except Exception:
-            return False
     return True
 
 def get_sub_keyboard():
