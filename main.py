@@ -17,7 +17,7 @@ import os
 BOT_TOKEN = "8656369612:AAHpVfrFadGX7RQgNu7YNZAYfqP_zJFinQQ"
 ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
 CARD_NUMBER = "9860 1666 5645 6349"
-CARD_OWNER = "AZIZBEK K"
+CARD_OWNER = "AZIZBEK  K"
 
 # Majburiy obuna kanallari
 CHANNELS = [
