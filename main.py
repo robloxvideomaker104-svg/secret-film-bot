@@ -21,17 +21,8 @@ CARD_OWNER = "AZIZBEK K"
 
 # Majburiy obuna kanallari
 CHANNELS = [
-    "@azizakabott",  # <-- Haqiqiy kanal username yozing (masalan: @dono_kino)
-    -1004433350429, 
-    -1003822759522
+    "@azizakabott",  
 ]
-
-# Kanallarning tugma uchun havolalari
-CHANNEL_LINKS = {
-    "@azizakabott": "https://t.me/azizakabott",
-    -1004433350429: "https://t.me/+CAaOszXRNudkZmMy", 
-    -1003822759522: "https://t.me/+iHpCgbHqot83Y2M6"  
-}
 
 # ==========================================
 #   ESKI PREMIUM FOYDALANUVCHILARNI TIKLASH
