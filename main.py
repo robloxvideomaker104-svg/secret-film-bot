@@ -28,171 +28,39 @@ CHANNELS = [
 #   ESKI PREMIUM FOYDALANUVCHILARNI TIKLASH
 # ==========================================
 RESTORE_PREMIUMS = {
-    6995215348: 1,
-    7357749954: 30,
-    8155884555: 90,
-    5155932471: 1,
-    7731796910: 1,
-    744698771: 1,
-    8510392964: 1,
-    5918260410: 30,
-    8650088591: 1,
-    7401775466: 1,
-    2075869992: 1,
-    5049541854: 1,
-    7204139890: 1,
-    8332345211: 30,
-    571562624: 1,
-    8691742694: 1,
-    795489741: 30,
-    8815235416: 30,
-    1352713666: 30,
-    8320258723: 30,
-    8314003745: 1,
-    7692360232: 30,
-    7714128386: 1,
-    928607993: 1,
-    8537643549: 30,
-    8342758698: 1,
-    8057944739: 90,
-    7945600821: 1,
-    8059099133: 1,
-    1308491657: 1,
-    8772264288: 1,
-    6434617440: 1,
-    8754343665: 1,
-    8430907854: 30,
-    1439060625: 1,
-    8509514098: 1,
-    753002115: 1,
-    5977138348: 1,
-    6080026487: 1,
-    6973564025: 1,
-    7733996178: 30,
-    7322214856: 1,
-    5963739922: 1,
-    7501215842: 1,
-    6748870757: 1,
-    8593927748: 1,
-    1245128200: 30,
-    6694134343: 1,
-    6857725953: 1,
-    8032474493: 30,
-    852504096: 1,
-    8520113330: 1,
-    7417710338: 1,
-    7282908833: 1,
-    7399959572: 30,
-    751263728: 30,
-    7929897679: 1,
-    83896599: 1,
-    8531457148: 1,
-    8741323351: 1,
-    8889212515: 1,
-    7602309795: 1,
-    8702792457: 1,
-    8538619007: 1,
-    8218231106: 1,
-    2054296247: 1,
-    6141326741: 1,
-    892751393: 30,
-    7634960767: 1,
-    7403182573: 30,
-    1861385433: 1,
-    6821100300: 1,
-    8604082827: 30,
-    5784891487: 1,
-    7997224524: 1,
-    698670822: 90,
-    6468528104: 1,
-    1918443225: 1,
-    2130137985: 1,
-    153276632: 1,
-    7683507959: 1,
-    8184013009: 90,
-    8726443289: 30,
-    5681338439: 1,
-    5234537997: 1,
-    7228628278: 30,
-    1177224715: 1,
-    7538665368: 30,
-    7854162098: 1,
-    8276775311: 30,
-    5404074578: 90,
-    8150430958: 1,
-    8497247894: 1,
-    5758172340: 1,
-    1118945247: 30,
-    8222256543: 1,
-    8629852631: 30,
-    1371548814: 1,
-    8438917027: 1,
-    8928414393: 90,
-    7685177470: 30,
-    8041366716: 30,
-    8853329563: 30,
-    8240387712: 30,
-    6931882484: 90,
-    6586070765: 1,
-    797542524: 30,
-    6599948446: 1,
-    8131800490: 1,
-    8752002895: 1,
-    538612236: 1,
-    8580152128: 30,
-    6594543919: 90,
-    7899686461: 1,
-    7812929338: 1,
-    5078273360: 30,
-    344789400: 30,
-    880004636: 1,
-    5537387692: 1,
-    7386991381: 30,
-    6551739581: 1,
-    1637768031: 1,
-    7989042566: 1,
-    1841178313: 1,
-    5892028049: 30,
-    530628067: 90,
-    6044924286: 1,
-    7598424593: 30,
-    8753838076: 30,
-    7943038460: 1,
-    6075901755: 30,
-    8673738885: 30,
-    2133858309: 1,
-    6743342411: 1,
-    8543071824: 30,
-    8673326507: 1,
-    1402732175: 1,
-    8302451432: 1,
-    7417648259: 1,
-    521186137: 1,
-    5037855230: 1,
-    1621013930: 1,
-    5362441842: 1,
-    8669490585: 1,
-    630599183: 1,
-    8523223733: 1,
-    7098228838: 1,
-    460921746: 30,
-    8775426066: 1,
-    6027898356: 30,
-    8212146332: 1,
-    8704581882: 1,
-    828918955: 90,
-    1033949413: 30,
-    1068763023: 90,
-    7733971853: 90,
-    6717295772: 30,
-    8071854273: 30,
-    1083354173: 30,
-    8746218879: 30,
-    5245271026: 90,
-    8576661469: 30,
-    8134930963: 30,
-    8711049823: 30,
-    5248274740: 1
+    6995215348: 1, 7357749954: 30, 8155884555: 90, 5155932471: 1, 7731796910: 1,
+    744698771: 1, 8510392964: 1, 5918260410: 30, 8650088591: 1, 7401775466: 1,
+    2075869992: 1, 5049541854: 1, 7204139890: 1, 8332345211: 30, 571562624: 1,
+    8691742694: 1, 795489741: 30, 8815235416: 30, 1352713666: 30, 8320258723: 30,
+    8314003745: 1, 7692360232: 30, 7714128386: 1, 928607993: 1, 8537643549: 30,
+    8342758698: 1, 8057944739: 90, 7945600821: 1, 8059099133: 1, 1308491657: 1,
+    8772264288: 1, 6434617440: 1, 8754343665: 1, 8430907854: 30, 1439060625: 1,
+    8509514098: 1, 753002115: 1, 5977138348: 1, 6080026487: 1, 6973564025: 1,
+    7733996178: 30, 7322214856: 1, 5963739922: 1, 7501215842: 1, 6748870757: 1,
+    8593927748: 1, 1245128200: 30, 6694134343: 1, 6857725953: 1, 8032474493: 30,
+    852504096: 1, 8520113330: 1, 7417710338: 1, 7282908833: 1, 7399959572: 30,
+    751263728: 30, 7929897679: 1, 83896599: 1, 8531457148: 1, 8741323351: 1,
+    8889212515: 1, 7602309795: 1, 8702792457: 1, 8538619007: 1, 8218231106: 1,
+    2054296247: 1, 6141326741: 1, 892751393: 30, 7634960767: 1, 7403182573: 30,
+    1861385433: 1, 6821100300: 1, 8604082827: 30, 5784891487: 1, 7997224524: 1,
+    698670822: 90, 6468528104: 1, 1918443225: 1, 2130137985: 1, 153276632: 1,
+    7683507959: 1, 8184013009: 90, 8726443289: 30, 5681338439: 1, 5234537997: 1,
+    7228628278: 30, 1177224715: 1, 7538665368: 30, 7854162098: 1, 8276775311: 30,
+    5404074578: 90, 8150430958: 1, 8497247894: 1, 5758172340: 1, 1118945247: 30,
+    8222256543: 1, 8629852631: 30, 1371548814: 1, 8438917027: 1, 8928414393: 90,
+    7685177470: 30, 8041366716: 30, 8853329563: 30, 8240387712: 30, 6931882484: 90,
+    6586070765: 1, 797542524: 30, 6599948446: 1, 8131800490: 1, 8752002895: 1,
+    538612236: 1, 8580152128: 30, 6594543919: 90, 7899686461: 1, 7812929338: 1,
+    5078273360: 30, 344789400: 30, 880004636: 1, 5537387692: 1, 7386991381: 30,
+    6551739581: 1, 1637768031: 1, 7989042566: 1, 1841178313: 1, 5892028049: 30,
+    530628067: 90, 6044924286: 1, 7598424593: 30, 8753838076: 30, 7943038460: 1,
+    6075901755: 30, 8673738885: 30, 2133858309: 1, 6743342411: 1, 8543071824: 30,
+    8673326507: 1, 1402732175: 1, 8302451432: 1, 7417648259: 1, 521186137: 1,
+    5037855230: 1, 1621013930: 1, 5362441842: 1, 8669490585: 1, 630599183: 1,
+    8523223733: 1, 7098228838: 1, 460921746: 30, 8775426066: 1, 6027898356: 30,
+    8212146332: 1, 8704581882: 1, 828918955: 90, 1033949413: 30, 1068763023: 90,
+    7733971853: 90, 6717295772: 30, 8071854273: 30, 1083354173: 30, 8746218879: 30,
+    5245271026: 90, 8576661469: 30, 8134930963: 30, 8711049823: 30, 5248274740: 1
 }
 
 logging.basicConfig(level=logging.INFO)
@@ -513,7 +381,7 @@ async def find_movie_handler(message: types.Message):
 
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="💎 Premium obuna sotib olish", callback_data="premium_menu")]])
-        await message.reply("🔒 <b>Ushbu kino faqat Premium foydalanuvchilar uchun mo'ljallangan!</b>", reply_markup=kb, parse_mode="HTML")
+        await message.reply("🔒 <b>Bu kino faqat Premium obunachilar uchun!</b>\n\nKino ko'rish uchun premium obuna sotib oling.", reply_markup=kb, parse_mode="HTML")
         return
 
     await message.reply_video(
@@ -522,13 +390,26 @@ async def find_movie_handler(message: types.Message):
         parse_mode="HTML"
     )
 
+# ==========================================
+#          ADMIN BOSHQARUV PANELI
+# ==========================================
 @dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin_panel_handler(message: types.Message):
     btn = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📊 Umumiy Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="💎 Premium Statistika", callback_data="admin_prem_stats")],
         [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
     ])
     await message.answer("👨‍💻 <b>Admin boshqaruv paneli:</b>", reply_markup=btn, parse_mode="HTML")
+
+@dp.callback_query(F.data == "back_to_admin", F.from_user.id == ADMIN_ID)
+async def back_to_admin_handler(call: types.CallbackQuery):
+    btn = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📊 Umumiy Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="💎 Premium Statistika", callback_data="admin_prem_stats")],
+        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
+    ])
+    await call.message.edit_text("👨‍💻 <b>Admin boshqaruv paneli:</b>", reply_markup=btn, parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_stats", F.from_user.id == ADMIN_ID)
 async def admin_stats_handler(call: types.CallbackQuery):
@@ -539,12 +420,55 @@ async def admin_stats_handler(call: types.CallbackQuery):
         views_sum = total_views[0] if total_views and total_views[0] else 0
         
     text = (
-        "📊 <b>BOT STATISTIKASI</b>\n\n"
+        "📊 <b>UMUMIY BOT STATISTIKASI</b>\n\n"
         f"👥 Foydalanuvchilar: <b>{u_cnt[0]}</b> ta\n"
         f"🎬 Bazadagi kinolar: <b>{m_cnt[0]}</b> ta\n"
         f"👀 Jami ko'rishlar: <b>{views_sum}</b> marta"
     )
-    await call.message.edit_text(text, parse_mode="HTML")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_to_admin")]])
+    await call.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@dp.callback_query(F.data == "admin_prem_stats", F.from_user.id == ADMIN_ID)
+async def admin_prem_stats_handler(call: types.CallbackQuery):
+    now = datetime.now()
+    async with aiosqlite.connect("bot_database.db") as db:
+        cursor = await db.execute("SELECT premium_until FROM users WHERE premium_until IS NOT NULL")
+        rows = await cursor.fetchall()
+        
+    stats = {"1_soat": 0, "1_kun": 0, "1_hafta": 0, "1_oy": 0, "1_yil": 0}
+    total_active = 0
+    
+    for row in rows:
+        try:
+            p_until = datetime.fromisoformat(row[0])
+            if p_until > now:
+                total_active += 1
+                diff = p_until - now
+                if diff.total_seconds() <= 3600:
+                    stats["1_soat"] += 1
+                elif diff.days < 1:
+                    stats["1_kun"] += 1
+                elif diff.days < 7:
+                    stats["1_hafta"] += 1
+                elif diff.days < 30:
+                    stats["1_oy"] += 1
+                else:
+                    stats["1_yil"] += 1
+        except:
+            pass
+            
+    text = (
+        "💎 <b>FAOL PREMIUM OBUNACHILAR</b>\n\n"
+        f"✅ Jami aktiv premiumlar: <b>{total_active}</b> ta\n\n"
+        f"⏳ <b>Qolgan vaqti bo'yicha taqsimot:</b>\n"
+        f"🔹 1 soatdan kam: <b>{stats['1_soat']}</b> ta\n"
+        f"🔹 1 kungacha: <b>{stats['1_kun']}</b> ta\n"
+        f"🔹 1 haftagacha: <b>{stats['1_hafta']}</b> ta\n"
+        f"🔹 1 oygacha: <b>{stats['1_oy']}</b> ta\n"
+        f"🔹 1 yilgacha (yoki ko'p): <b>{stats['1_yil']}</b> ta\n"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_to_admin")]])
+    await call.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 # ==========================================
 #          XABAR TARQATISH (BROADCAST)
