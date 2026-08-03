@@ -19,9 +19,10 @@ ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
 CARD_NUMBER = "9860 1666 5645 6349"
 CARD_OWNER = "AZIZBEK K"
 
-# Majburiy obuna va zayafka kanallari (Username va ID lar birgalikda)
+# Majburiy obuna va zayafka kanallari 
+# DIQQAT: Bu yerda faqat KANAL yoki GURUH bo'lishi kerak! (Bot username yozmang)
 CHANNELS = [
-    "@azizakabott",
+    "@azizakabott",  # <-- Haqiqiy kanal username yozing (masalan: @dono_kino)
     -1004433350429, 
     -1003822759522
 ]
@@ -29,15 +30,14 @@ CHANNELS = [
 # Kanallarning tugma uchun havolalari
 CHANNEL_LINKS = {
     "@azizakabott": "https://t.me/azizakabott",
-    -1004433350429: "https://t.me/+CAaOszXRNudkZmMy", # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
-    -1003822759522: "https://t.me/+iHpCgbHqot83Y2M6"  # <-- Shu yerni o'z kanalingiz havolasi bilan almashtiring
+    -1004433350429: "https://t.me/+CAaOszXRNudkZmMy", 
+    -1003822759522: "https://t.me/+iHpCgbHqot83Y2M6"  
 }
 
 # Namuna uchun stiker ID
 DEFAULT_STICKER = "CAACAgIAAxkBAAE..."
 
 async def send_safe_sticker(chat_id, sticker_id=DEFAULT_STICKER):
-    """Stiker yuborishda xatolik chiqishining oldini oluvchi yordamchi funksiya"""
     try:
         await bot.send_sticker(chat_id=chat_id, sticker=sticker_id)
     except Exception:
@@ -311,7 +311,7 @@ async def admin_set_premium(message: types.Message):
         pass
 
 # ==========================================
-#    ZAYAFKA (SO'ROV) QABUL QILMASDAN SAQLASH
+#    ZAYAFKANI BAZAGA YOZISH (QABUL QILMASDAN)
 # ==========================================
 @dp.chat_join_request()
 async def chat_join_request_handler(chat_join: types.ChatJoinRequest):
@@ -321,25 +321,20 @@ async def chat_join_request_handler(chat_join: types.ChatJoinRequest):
             (chat_join.from_user.id, str(chat_join.chat.id))
         )
         await db.commit()
-    try:
-        await send_safe_sticker(chat_join.from_user.id)
-        await bot.send_message(
-            chat_join.from_user.id,
-            "🎉 <b>Kanalga obuna so'rovingiz qabul qilindi!</b>\n\n"
-            "🔄 Endi botga qaytib <b>«🔄 Tekshirish»</b> tugmasini bosing:",
-            parse_mode="HTML"
-        )
-    except Exception:
-        pass
 
 # ==========================================
-#          OBUNA VA ZAYAFKANI TEKSHIRISH
+#      QAT'IY OBUNA VA ZAYAFKA TEKSHIRISH
 # ==========================================
 async def check_subscription(user_id: int) -> bool:
+    # Admin har doim o'tishi uchun (xohlasangiz bu qatorni olib tashlashingiz mumkin)
+    if user_id == ADMIN_ID:
+        return True
+
     async with aiosqlite.connect("bot_database.db") as db:
         for channel in CHANNELS:
             is_subbed = False
-            # 1. Haqiqiy a'zolikni tekshirish
+            
+            # 1. Obuna bo'lganligini tekshirish
             try:
                 member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
                 if member.status in ['member', 'administrator', 'creator']:
@@ -347,7 +342,7 @@ async def check_subscription(user_id: int) -> bool:
             except Exception:
                 pass
             
-            # 2. Agar a'zo bo'lmasa, zayafka tashlaganini bazadan tekshirish
+            # 2. Agar a'zo bo'lmasa, zayafka (so'rov) tashlaganini tekshirish
             if not is_subbed:
                 cursor = await db.execute(
                     "SELECT 1 FROM join_requests WHERE user_id = ? AND chat_id = ?",
@@ -357,15 +352,17 @@ async def check_subscription(user_id: int) -> bool:
                 if row:
                     is_subbed = True
             
+            # Agar bittagina kanalda ham obuna yoki zayafka bo'lmasa -> DARHOL FALSE QAYTARADI
             if not is_subbed:
                 return False
+                
     return True
 
 def get_sub_keyboard():
     builder = []
     for idx, channel in enumerate(CHANNELS, start=1):
         link = CHANNEL_LINKS.get(channel, "https://t.me/")
-        builder.append([InlineKeyboardButton(text=f"📢 {idx}-Kanalga obuna bo'lish / So'rov", url=link)])
+        builder.append([InlineKeyboardButton(text=f"📢 {idx}-Kanalga obuna / So'rov yuborish", url=link)])
     
     builder.append([InlineKeyboardButton(text="🔄 Tekshirish", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
@@ -402,8 +399,8 @@ async def start_handler(message: types.Message):
         )
     else:
         text = (
-            "❌ <b>DIQQAT!</b>\n\n"
-            "<b>Botimizdan foydalanishni davom ettirish uchun quyidagi homiy kanallarimizga obuna bo'ling yoki so'rov yuboring:</b> 👇"
+            "❌ <b>DIQQAT! BOTDAN FOYDALANIB BO'LMAYDI!</b>\n\n"
+            "<b>Botimizning barcha imkoniyatlaridan foydalanish uchun quyidagi homiy kanallarga obuna bo'ling yoki zayafka tashlang:</b> 👇"
         )
         await message.answer(text, reply_markup=get_sub_keyboard(), parse_mode="HTML")
 
@@ -413,13 +410,13 @@ async def check_sub_handler(call: types.CallbackQuery):
         await call.message.delete()
         await send_safe_sticker(call.from_user.id)
         await call.message.answer(
-            "✅ <b>Obunangiz muvaffaqiyatli tasdiqlandi!</b>\n\n"
+            "✅ <b>Obunangiz tasdiqlandi!</b>\n\n"
             "🎬 <b>Endi kino kodini yuborishingiz mumkin:</b> 👇", 
             reply_markup=main_reply_keyboard, 
             parse_mode="HTML"
         )
     else:
-        await call.answer("❌ Siz hali barcha kanallarga obuna bo'lmadingiz yoki so'rov yubormadingiz!", show_alert=True)
+        await call.answer("❌ Siz hali hamma kanallarga obuna bo'lmadingiz yoki zayafka tashlamadingiz!", show_alert=True)
 
 @dp.callback_query(F.data == "back_to_start")
 async def back_to_start_handler(call: types.CallbackQuery):
@@ -429,6 +426,9 @@ async def back_to_start_handler(call: types.CallbackQuery):
 
 @dp.message(F.text == "💎 Premium obuna")
 async def premium_text_handler(message: types.Message):
+    if not await check_subscription(message.from_user.id):
+        await message.answer("❌ Avval barcha kanallarga obuna bo'ling!", reply_markup=get_sub_keyboard())
+        return
     text = (
         "💎 <b>PREMIUM OBUNA MARKAZI</b>\n\n"
         "✨ <b>Premium foydalanuvchilar barcha kinolarni cheklovsiz va reklamasiz tomosha qilishadi!</b>\n\n"
@@ -439,6 +439,9 @@ async def premium_text_handler(message: types.Message):
 
 @dp.callback_query(F.data == "premium_menu")
 async def premium_menu_handler(call: types.CallbackQuery):
+    if not await check_subscription(call.from_user.id):
+        await call.message.answer("❌ Avval barcha kanallarga obuna bo'ling!", reply_markup=get_sub_keyboard())
+        return
     text = (
         "💎 <b>PREMIUM OBUNA MARKAZI</b>\n\n"
         "✨ <b>Premium foydalanuvchilar barcha kinolarni cheklovsiz va reklamasiz tomosha qilishadi!</b>\n\n"
@@ -562,6 +565,14 @@ async def add_movie_handler(message: types.Message):
 
 @dp.message(F.text.regexp(r'^\d+$'))
 async def find_movie_handler(message: types.Message):
+    if not await check_subscription(message.from_user.id):
+        await message.answer(
+            "❌ <b>DIQQAT! Botdan foydalanish uchun kanallarga obuna bo'ling yoki so'rov yuboring:</b> 👇", 
+            reply_markup=get_sub_keyboard(), 
+            parse_mode="HTML"
+        )
+        return
+
     movie_code = int(message.text)
     async with aiosqlite.connect("bot_database.db") as db:
         cursor = await db.execute("SELECT file_id, views FROM movies WHERE code = ?", (movie_code,))
