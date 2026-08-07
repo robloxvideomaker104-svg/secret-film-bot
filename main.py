@@ -8,21 +8,28 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from aiohttp import web
 import os
 
 # ==========================================
 #               SOZLAMALAR
 # ==========================================
 BOT_TOKEN = "8656369612:AAHpVfrFadGX7RQgNu7YNZAYfqP_zJFinQQ"
-ADMIN_ID = 8631477823  # Sizning Telegram ID raqamingiz
+ADMIN_ID = 8631477823
 CARD_NUMBER = "9860 1666 5645 6349"
-CARD_OWNER = "Kdirbaev Azizbek"
+CARD_OWNER = "AZIZBEK K"
 
-# Majburiy obuna kanallari
-CHANNELS = [
-    "@azizakabott",  
+# FAQAT SHU KANAL TEKSHIRILADI:
+MAIN_CHANNEL = "@azizakabott"
+
+# TUGMADA KO'RINADIGAN ZAYAVKA KANALLAR (Bot bularni tekshirmaydi):
+CHANNELS_TO_SHOW = [
+    {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+CAaOszXRNudkZmMy"},
+    {"name": "📢 2 - Zayavka Kanal", "url": "https://t.me/+iHpCgbHqot83Y2M6"},
+    {"name": "⭐️ Asosiy Kanal", "url": f"https://t.me/{MAIN_CHANNEL[1:]}"}
 ]
+
+# STIKERLAR (Ixtiyoriy o'zingizning stiker file_id laringizni qo'yishingiz mumkin)
+WELCOME_STICKER = "CAACAgIAAxkBAAE..."  # Start uchun stiker file_id (bo'sh qolsa ham xato bermaydi)
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -76,29 +83,28 @@ async def is_premium(user_id) -> bool:
         return False
 
 # ==========================================
-#          MAJBURIY OBUNA MANTIQI
+#     MAJBURIY OBUNA (FAQAT @azizakabott)
 # ==========================================
 async def check_subscription(user_id: int) -> bool:
-    for channel in CHANNELS:
-        try:
-            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
-            if member.status in ['left', 'kicked']:
-                return False
-        except Exception:
+    try:
+        member = await bot.get_chat_member(chat_id=MAIN_CHANNEL, user_id=user_id)
+        if member.status in ['left', 'kicked']:
             return False
-    return True
+        return True
+    except Exception:
+        return False
 
 def get_sub_keyboard():
     builder = []
-    for channel in CHANNELS:
-        builder.append([InlineKeyboardButton(text="Obuna bo'lish", url=f"https://t.me/{channel[1:]}")])
+    for ch in CHANNELS_TO_SHOW:
+        builder.append([InlineKeyboardButton(text=ch["name"], url=ch["url"])])
     
-    builder.append([InlineKeyboardButton(text="Tekshirish", callback_data="check_sub")])
+    builder.append([InlineKeyboardButton(text="⚡️ <b>TEKSHIRISH</b> ⚡️", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
 
 main_reply_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="💎 Premium")]
+        [KeyboardButton(text="💎 <b>PREMIUM VIP</b> 💎")]
     ],
     resize_keyboard=True
 )
@@ -108,10 +114,10 @@ main_reply_keyboard = ReplyKeyboardMarkup(
 # ==========================================
 def get_tariffs_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="1 kunlik obuna - 5 000 so'm", callback_data=TariffCB(days=1, price=5000).pack())],
-        [InlineKeyboardButton(text="1 oylik obuna - 10 000 so'm", callback_data=TariffCB(days=30, price=10000).pack())],
-        [InlineKeyboardButton(text="3 oylik obuna - 20 000 so'm", callback_data=TariffCB(days=90, price=20000).pack())],
-        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="back_to_start")]
+        [InlineKeyboardButton(text="⚡️ <b>1 KUNLIK OBUNA — 5 000 SO'M</b> ⚡️", callback_data=TariffCB(days=1, price=5000).pack())],
+        [InlineKeyboardButton(text="🔥 <b>1 HAFTALIK OBUNA — 10 000 SO'M</b> 🔥", callback_data=TariffCB(days=7, price=10000).pack())],
+        [InlineKeyboardButton(text="👑 <b>1 OYLIK OBUNA — 20 000 SO'M</b> 👑", callback_data=TariffCB(days=30, price=20000).pack())],
+        [InlineKeyboardButton(text="◀️ <b>ORQAGA</b> ◀️", callback_data="back_to_start")]
     ])
 
 # ==========================================
@@ -133,15 +139,15 @@ async def start_handler(message: types.Message):
     
     if subscribed:
         await message.answer(
-            f"👋 Assalomu alaykum <b>{message.from_user.first_name}</b>, botimizga xush kelibsiz.\n\n"
-            f"✍️ Kino kodini yuboring...", 
+            f"👋 <b>Assalomu alaykum</b> <b>{message.from_user.first_name}</b>, <b>botimizga xush kelibsiz!</b> 🎉\n\n"
+            f"✍️ <b>Kino kodini yuboring...</b> 🎬", 
             reply_markup=main_reply_keyboard, 
             parse_mode="HTML"
         )
     else:
         text = (
-            "❌ <b>Kechirasiz, botimizdan foydalanish uchun ushbu kanallarga obuna bo'lishingiz kerak.</b>\n\n"
-            "💎 <i>Premium obuna sotib olib, kanallarga obuna bo'lmasdan foydalanishingiz mumkin.</i>"
+            "⚠️ <b>Kechirasiz, botimizdan foydalanish uchun ushbu kanallarga obuna bo'lishingiz/zayavka yuborishingiz kerak!</b> 📌\n\n"
+            "💎 <b>Premium obuna sotib olib, kanallarga obuna bo'lmasdan foydalanishingiz ham mumkin.</b> 🚀"
         )
         await message.answer(text, reply_markup=get_sub_keyboard(), parse_mode="HTML")
 
@@ -150,12 +156,12 @@ async def check_sub_handler(call: types.CallbackQuery):
     if await check_subscription(call.from_user.id):
         await call.message.delete()
         await call.message.answer(
-            "✅ Obuna tasdiqlandi!\n\n✍️ Kino kodini yuboring...", 
+            "✅ <b>Obuna muvaffaqiyatli tasdiqlandi!</b> 🎉\n\n✍️ <b>Kino kodini yuboring...</b> 🎬", 
             reply_markup=main_reply_keyboard, 
             parse_mode="HTML"
         )
     else:
-        await call.answer("Barcha kanallarga obuna bo'lmadingiz!", show_alert=True)
+        await call.answer("❌ Kanallarga obuna bo'lmadingiz!", show_alert=True)
 
 @dp.callback_query(F.data == "back_to_start")
 async def back_to_start_handler(call: types.CallbackQuery):
@@ -168,27 +174,27 @@ async def back_to_start_handler(call: types.CallbackQuery):
     )
     await start_handler(fake_msg)
 
-@dp.message(F.text == "💎 Premium")
+@dp.message(F.text.contains("PREMIUM VIP") | (F.text == "💎 Premium"))
 async def premium_text_handler(message: types.Message):
     text = (
-        "💎 <b>Premium obuna</b>\n\n"
-        "Premium orqali quyidagilarga ega bo'lasiz:\n"
-        "• Kanallarga obuna bo'lmasdan kino ko'rish\n"
-        "• Reklamalarsiz foydalanish\n"
-        "• Yuqori sifatda tomosha qilish\n\n"
-        "📋 Quyidagi tariflardan birini tanlang:"
+        "💎 <b>PREMIUM OBUNA</b> 👑\n\n"
+        "✨ <b>Premium orqali quyidagilarga ega bo'lasiz:</b>\n"
+        "🟢 <b>Kanallarga obuna bo'lmasdan kino ko'rish</b>\n"
+        "🟢 <b>Reklamalarsiz tezkor foydalanish</b>\n"
+        "🟢 <b>Yuqori sifatdagi kinolarni tomosha qilish</b>\n\n"
+        "📋 <b>Quyidagi tariflardan birini tanlang:</b> ⬇️"
     )
     await message.answer(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "premium_menu")
 async def premium_menu_handler(call: types.CallbackQuery):
     text = (
-        "💎 <b>Premium obuna</b>\n\n"
-        "Premium orqali quyidagilarga ega bo'lasiz:\n"
-        "• Kanallarga obuna bo'lmasdan kino ko'rish\n"
-        "• Reklamalarsiz foydalanish\n"
-        "• Yuqori sifatda tomosha qilish\n\n"
-        "📋 Quyidagi tariflardan birini tanlang:"
+        "💎 <b>PREMIUM OBUNA</b> 👑\n\n"
+        "✨ <b>Premium orqali quyidagilarga ega bo'lasiz:</b>\n"
+        "🟢 <b>Kanallarga obuna bo'lmasdan kino ko'rish</b>\n"
+        "🟢 <b>Reklamalarsiz tezkor foydalanish</b>\n"
+        "🟢 <b>Yuqori sifatdagi kinolarni tomosha qilish</b>\n\n"
+        "📋 <b>Quyidagi tariflardan birini tanlang:</b> ⬇️"
     )
     try:
         await call.message.edit_text(text, reply_markup=get_tariffs_keyboard(), parse_mode="HTML")
@@ -200,24 +206,24 @@ async def tariff_selected_handler(call: types.CallbackQuery, callback_data: Tari
     await state.update_data(days=callback_data.days, price=callback_data.price)
     
     text = (
-        "💎 <b>PREMIUM OBUNA — TO'LOV MA'LUMOTLARI</b>\n\n"
-        f"📦 Tarif: {callback_data.days} kunlik obuna\n"
-        f"💳 Karta raqami: <code>{CARD_NUMBER}</code>\n"
-        f"👤 Karta egasi: {CARD_OWNER}\n"
-        f"💰 To'lov summasi: {callback_data.price:,} so'm\n\n"
+        "💳 <b>PREMIUM OBUNA — TO'LOV MA'LUMOTLARI</b> 💸\n\n"
+        f"📦 <b>Tarif:</b> <b>{callback_data.days} kunlik obuna</b>\n"
+        f"💳 <b>Karta raqami:</b> <code>{CARD_NUMBER}</code>\n"
+        f"👤 <b>Karta egasi:</b> <b>{CARD_OWNER}</b>\n"
+        f"💰 <b>To'lov summasi:</b> <b>{callback_data.price:,} so'm</b>\n\n"
         "⚠️ <b>Diqqat:</b>\n"
-        "📸 Pulni o'tkazgandan so'ng, chekni (skrinshotni) yuborish uchun pastdagi tugmani bosing!"
+        "📸 <b>Pulni o'tkazgandan so'ng, chekni (skrinshotni) yuborish uchun pastdagi tugmani bosing!</b> ⬇️"
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📤 Chek rasmini yuborish", callback_data="send_receipt")],
-        [InlineKeyboardButton(text="◀️ Orqaga", callback_data="premium_menu")]
+        [InlineKeyboardButton(text="📤 <b>CHEK RASMINI YUBORISH</b> 📤", callback_data="send_receipt")],
+        [InlineKeyboardButton(text="◀️ <b>ORQAGA</b> ◀️", callback_data="premium_menu")]
     ])
     await call.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 @dp.callback_query(F.data == "send_receipt")
 async def ask_receipt_handler(call: types.CallbackQuery, state: FSMContext):
     await state.set_state(PaymentState.waiting_for_receipt)
-    await call.message.answer("📸 Iltimos, to'lovni tasdiqlovchi chek (skrinshot) rasmini shu yerga yuboring:")
+    await call.message.answer("📸 <b>Iltimos, to'lovni tasdiqlovchi chek (skrinshot) rasmini shu yerga yuboring:</b>", parse_mode="HTML")
     await call.answer()
 
 @dp.message(PaymentState.waiting_for_receipt, F.photo)
@@ -229,21 +235,21 @@ async def receipt_received_handler(message: types.Message, state: FSMContext):
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=ApproveCB(user_id=message.from_user.id, days=days).pack()),
-            InlineKeyboardButton(text="❌ Rad etish", callback_data=RejectCB(user_id=message.from_user.id).pack())
+            InlineKeyboardButton(text="✅ <b>Tasdiqlash</b>", callback_data=ApproveCB(user_id=message.from_user.id, days=days).pack()),
+            InlineKeyboardButton(text="❌ <b>Rad etish</b>", callback_data=RejectCB(user_id=message.from_user.id).pack())
         ]
     ])
     
     caption = (
-        "💳 <b>Yangi to'lov cheki keldi!</b>\n\n"
-        f"👤 Foydalanuvchi: {message.from_user.full_name}\n"
-        f"🆔 ID: <code>{message.from_user.id}</code>\n"
-        f"📦 Tarif: {days} kunlik\n"
-        f"💰 Summa: {price:,} so'm"
+        "💳 <b>YANGI TO'LOV CHEKI KELDI!</b> 🚨\n\n"
+        f"👤 <b>Foydalanuvchi:</b> <b>{message.from_user.full_name}</b>\n"
+        f"🆔 <b>ID:</b> <code>{message.from_user.id}</code>\n"
+        f"📦 <b>Tarif:</b> <b>{days} kunlik</b>\n"
+        f"💰 <b>Summa:</b> <b>{price:,} so'm</b>"
     )
     
     await bot.send_photo(chat_id=ADMIN_ID, photo=photo_file_id, caption=caption, reply_markup=admin_kb, parse_mode="HTML")
-    await message.answer("✅ <b>Chekingiz adminga yuborildi!</b>\nAdminlar tekshirib chiqquncha kuting.", parse_mode="HTML", reply_markup=main_reply_keyboard)
+    await message.answer("✅ <b>Chekingiz adminga yuborildi!</b> ⏳\n<b>Adminlar tekshirib chiqquncha kuting.</b>", parse_mode="HTML", reply_markup=main_reply_keyboard)
     await state.clear()
 
 @dp.callback_query(ApproveCB.filter(), F.from_user.id == ADMIN_ID)
@@ -271,14 +277,14 @@ async def approve_payment_handler(call: types.CallbackQuery, callback_data: Appr
     try:
         await bot.send_message(
             chat_id=user_id,
-            text=f"🎉 <b>Tabriklaymiz! To'lovingiz tasdiqlandi.</b>\nSizga {days} kunlik Premium obuna berildi. Endi kino kodlarini yuborishingiz mumkin!",
+            text=f"🎉 <b>Tabriklaymiz! To'lovingiz tasdiqlandi.</b> 👑\n<b>Sizga {days} kunlik Premium obuna berildi. Endi kino kodlarini yuborishingiz mumkin!</b> 🎬",
             parse_mode="HTML"
         )
     except Exception:
         pass
         
-    await call.message.edit_caption(caption=call.message.caption + "\n\n<b>✅ TASDIQLANDI</b>", parse_mode="HTML")
-    await call.answer("To'lov tasdiqlandi va foydalanuvchiga premium berildi!", show_alert=True)
+    await call.message.edit_caption(caption=call.message.caption + "\n\n✅ <b>TASDIQLANDI</b>", parse_mode="HTML")
+    await call.answer("To'lov tasdiqlandi!", show_alert=True)
 
 @dp.callback_query(RejectCB.filter(), F.from_user.id == ADMIN_ID)
 async def reject_payment_handler(call: types.CallbackQuery, callback_data: RejectCB):
@@ -287,13 +293,13 @@ async def reject_payment_handler(call: types.CallbackQuery, callback_data: Rejec
     try:
         await bot.send_message(
             chat_id=user_id,
-            text="❌ <b>Kechirasiz, to'lov chekingiz rad etildi.</b>\nIltimos, to'g'ri chek yuborganingizga ishonch hosil qiling.",
+            text="❌ <b>Kechirasiz, to'lov chekingiz rad etildi.</b> ⚠️\n<b>Iltimos, to'g'ri chek yuborganingizga ishonch hosil qiling.</b>",
             parse_mode="HTML"
         )
     except Exception:
         pass
         
-    await call.message.edit_caption(caption=call.message.caption + "\n\n<b>❌ RAD ETILDI</b>", parse_mode="HTML")
+    await call.message.edit_caption(caption=call.message.caption + "\n\n❌ <b>RAD ETILDI</b>", parse_mode="HTML")
     await call.answer("To'lov rad etildi.", show_alert=True)
 
 # ==========================================
@@ -303,7 +309,7 @@ async def reject_payment_handler(call: types.CallbackQuery, callback_data: Rejec
 async def admin_set_premium(message: types.Message):
     args = message.text.split()
     if len(args) != 3 or not args[1].isdigit() or not args[2].isdigit():
-        await message.reply("❌ <b>Xato format!</b>\n\nIshlatilishi: <code>/prem user_id kun</code>\nMisol: <code>/prem 123456789 30</code>", parse_mode="HTML")
+        await message.reply("❌ <b>Xato format!</b>\n\n<b>Ishlatilishi:</b> <code>/prem user_id kun</code>\n<b>Misol:</b> <code>/prem 123456789 30</code>", parse_mode="HTML")
         return
     
     uid = int(args[1])
@@ -327,7 +333,7 @@ async def admin_set_premium(message: types.Message):
         await db.execute("UPDATE users SET premium_until = ? WHERE user_id = ?", (new_expiry.isoformat(), uid))
         await db.commit()
     
-    await message.reply(f"✅ <b>{uid}</b> ID raqamli foydalanuvchiga <b>{days} kunlik</b> Premium muvaffaqiyatli berildi!", parse_mode="HTML")
+    await message.reply(f"✅ <b>{uid}</b> <b>ID raqamli foydalanuvchiga</b> <b>{days} kunlik Premium berildi!</b> 👑", parse_mode="HTML")
     try:
         await bot.send_message(uid, f"🎉 <b>Sizga admin tomonidan {days} kunlik Premium obuna taqdim etildi!</b> ✨", parse_mode="HTML")
     except:
@@ -337,7 +343,7 @@ async def admin_set_premium(message: types.Message):
 async def admin_remove_premium(message: types.Message):
     args = message.text.split()
     if len(args) != 2 or not args[1].isdigit():
-        await message.reply("❌ <b>Xato format!</b>\n\nIshlatilishi: <code>/unprem user_id</code>\nMisol: <code>/unprem 123456789</code>", parse_mode="HTML")
+        await message.reply("❌ <b>Xato format!</b>\n\n<b>Ishlatilishi:</b> <code>/unprem user_id</code>\n<b>Misol:</b> <code>/unprem 123456789</code>", parse_mode="HTML")
         return
     
     uid = int(args[1])
@@ -346,7 +352,7 @@ async def admin_remove_premium(message: types.Message):
         await db.execute("UPDATE users SET premium_until = NULL WHERE user_id = ?", (uid,))
         await db.commit()
     
-    await message.reply(f"✅ <b>{uid}</b> ID raqamli foydalanuvchidan Premium statusi olib tashlandi!", parse_mode="HTML")
+    await message.reply(f"✅ <b>{uid}</b> <b>ID raqamli foydalanuvchidan Premium olib tashlandi!</b>", parse_mode="HTML")
     try:
         await bot.send_message(uid, "⚠️ <b>Sizning Premium obunangiz admin tomonidan bekor qilindi.</b>", parse_mode="HTML")
     except:
@@ -357,7 +363,7 @@ async def backup_database(message: types.Message):
     if os.path.exists("bot_database.db"):
         await message.answer_document(
             types.FSInputFile("bot_database.db"),
-            caption="📂 <b>Bazaning nusxasi (Backup) tayyor!</b>\n\nBarcha ma'lumotlar xavfsiz saqlangan.",
+            caption="📂 <b>Bazaning nusxasi (Backup) tayyor!</b> 💾\n\n<b>Barcha ma'lumotlar xavfsiz saqlangan.</b>",
             parse_mode="HTML"
         )
     else:
@@ -369,7 +375,7 @@ async def restore_database(message: types.Message):
         file_id = message.document.file_id
         file = await bot.get_file(file_id)
         await bot.download(file, destination="bot_database.db")
-        await message.reply("✅ <b>Baza muvaffaqiyatli tiklandi!</b> Barcha ma'lumotlar joyiga qaytdi.", parse_mode="HTML")
+        await message.reply("✅ <b>Baza muvaffaqiyatli tiklandi!</b> 💾", parse_mode="HTML")
 
 # Kino qidirish
 @dp.message(F.text.regexp(r'^\d+$'))
@@ -380,25 +386,23 @@ async def find_movie_handler(message: types.Message):
         cursor = await db.execute("SELECT file_id FROM movies WHERE code = ?", (movie_code,))
         row = await cursor.fetchone()
         
-    # Agar kod bazada umuman bo'lmasa:
     if not row:
-        await message.reply("❌ Kino kodini noto'g'ri yubordingiz!")
+        await message.reply("❌ <b>Kino kodini noto'g'ri yubordingiz!</b> ⚠️", parse_mode="HTML")
         return
 
-    # Agar kod to'g'ri (bazada bor) lekin foydalanuvchida Premium yo'q bo'lsa:
     if not await is_premium(message.from_user.id) and message.from_user.id != ADMIN_ID:
         text = (
-            "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun</b>\n\n"
-            "❗ <b>Premium ga obuna bo'ling.</b>"
+            "🔒 <b>Ushbu kino faqat «Premium» foydalanuvchilar uchun!</b> 👑\n\n"
+            "❗ <b>Premium obunaga ega bo'ling.</b> 🚀"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 Premium", callback_data="premium_menu")]
+            [InlineKeyboardButton(text="💎 <b>PREMIUM OLISH</b> 💎", callback_data="premium_menu")]
         ])
         await message.reply(text, reply_markup=kb, parse_mode="HTML")
         return
 
-    # Agar foydalanuvchida Premium bo'lsa yoki admin bo'lsa, kinoni yuboramiz:
-    await message.reply_video(video=row[0], caption=f"🎬 Kino kodi: {movie_code}\n\n🤖 @{bot._me.username}")
+    bot_info = await bot.get_me()
+    await message.reply_video(video=row[0], caption=f"🎬 <b>Kino kodi:</b> <b>{movie_code}</b>\n\n🤖 <b>@{bot_info.username}</b>", parse_mode="HTML")
 
 # ==========================================
 #               ADMIN PANEL
@@ -406,7 +410,7 @@ async def find_movie_handler(message: types.Message):
 @dp.message(F.video & (F.from_user.id == ADMIN_ID))
 async def add_movie_handler(message: types.Message):
     if not message.caption or not message.caption.isdigit():
-        await message.reply("❌ Kino qo'shish uchun video bilan birga uning kodini (faqat raqam) yozib yuboring!")
+        await message.reply("❌ <b>Kino qo'shish uchun video bilan birga uning kodini (faqat raqam) yozib yuboring!</b>", parse_mode="HTML")
         return
     
     movie_code = int(message.caption)
@@ -416,15 +420,15 @@ async def add_movie_handler(message: types.Message):
         await db.execute("INSERT OR REPLACE INTO movies (code, file_id) VALUES (?, ?)", (movie_code, file_id))
         await db.commit()
         
-    await message.reply(f"✅ Kino bazaga qo'shildi!\nKodi: {movie_code}")
+    await message.reply(f"✅ <b>Kino bazaga qo'shildi!</b> 🎬\n<b>Kodi:</b> <b>{movie_code}</b>", parse_mode="HTML")
 
 @dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin_panel_handler(message: types.Message):
     btn = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
+        [InlineKeyboardButton(text="📊 <b>Statistika</b>", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 <b>Xabar tarqatish</b>", callback_data="admin_broadcast")]
     ])
-    await message.answer("👨‍💻 <b>Admin panelga xush kelibsiz!</b>\n\nQuyidagi menyudan kerakli bo'limni tanlang:", reply_markup=btn, parse_mode="HTML")
+    await message.answer("👨‍💻 <b>Admin panelga xush kelibsiz!</b> ⚙️\n\n<b>Quyidagi menyudan kerakli bo'limni tanlang:</b>", reply_markup=btn, parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_stats", F.from_user.id == ADMIN_ID)
 async def admin_stats_handler(call: types.CallbackQuery):
@@ -433,27 +437,27 @@ async def admin_stats_handler(call: types.CallbackQuery):
         movies_count = await (await db.execute("SELECT COUNT(*) FROM movies")).fetchone()
     
     text = (
-        "📊 <b>Bot Statistikasi:</b>\n\n"
-        f"👥 Jami obunachilar: <b>{users_count[0]}</b> ta\n"
-        f"🎬 Bazadagi kinolar: <b>{movies_count[0]}</b> ta"
+        "📊 <b>BOT STATISTIKASI:</b> 📈\n\n"
+        f"👥 <b>Jami obunachilar:</b> <b>{users_count[0]}</b> ta\n"
+        f"🎬 <b>Bazadagi kinolar:</b> <b>{movies_count[0]}</b> ta"
     )
-    back_btn = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Orqaga", callback_data="admin_back")]])
+    back_btn = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ <b>Orqaga</b>", callback_data="admin_back")]])
     await call.message.edit_text(text, reply_markup=back_btn, parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_back", F.from_user.id == ADMIN_ID)
 async def admin_back_handler(call: types.CallbackQuery):
     btn = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
+        [InlineKeyboardButton(text="📊 <b>Statistika</b>", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 <b>Xabar tarqatish</b>", callback_data="admin_broadcast")]
     ])
-    await call.message.edit_text("👨‍💻 <b>Admin panelga xush kelibsiz!</b>\n\nQuyidagi menyudan kerakli bo'limni tanlang:", reply_markup=btn, parse_mode="HTML")
+    await call.message.edit_text("👨‍💻 <b>Admin panelga xush kelibsiz!</b> ⚙️\n\n<b>Quyidagi menyudan kerakli bo'limni tanlang:</b>", reply_markup=btn, parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_broadcast", F.from_user.id == ADMIN_ID)
 async def admin_broadcast_handler(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(
         "📢 <b>Barcha foydalanuvchilarga yuboriladigan xabarni yuboring:</b>\n"
-        "(Matn, rasm yoki video yuborishingiz mumkin)\n\n"
-        "<i>Bekor qilish uchun /cancel buyrug'ini yuboring.</i>", 
+        "<i>(Matn, rasm yoki video yuborishingiz mumkin)</i>\n\n"
+        "<b>Bekor qilish uchun /cancel buyrug'ini yuboring.</b>", 
         parse_mode="HTML"
     )
     await state.set_state(AdminState.waiting_for_broadcast)
@@ -461,7 +465,7 @@ async def admin_broadcast_handler(call: types.CallbackQuery, state: FSMContext):
 @dp.message(AdminState.waiting_for_broadcast, F.from_user.id == ADMIN_ID)
 async def send_broadcast_handler(message: types.Message, state: FSMContext):
     if message.text == '/cancel':
-        await message.answer("❌ Xabar tarqatish bekor qilindi.")
+        await message.answer("❌ <b>Xabar tarqatish bekor qilindi.</b>", parse_mode="HTML")
         await state.clear()
         return
 
@@ -471,44 +475,23 @@ async def send_broadcast_handler(message: types.Message, state: FSMContext):
         cursor = await db.execute("SELECT user_id FROM users")
         users = await cursor.fetchall()
         
-    success = 0
+    count = 0
     for user in users:
         try:
-            await message.send_copy(chat_id=user[0])
-            success += 1
+            await message.copy_to(chat_id=user[0])
+            count += 1
             await asyncio.sleep(0.05)
         except Exception:
             pass
-    
-    await message.answer(f"✅ <b>Xabar tarqatish yakunlandi!</b>\n\nYetib bordi: {success} ta foydalanuvchiga.", parse_mode="HTML")
+
+    await message.answer(f"✅ <b>Xabar {count} ta foydalanuvchiga muvaffaqiyatli yuborildi!</b> 🎉", parse_mode="HTML")
     await state.clear()
 
 # ==========================================
-#          RENDER UCHUN WEB SERVER
-# ==========================================
-async def web_server():
-    app = web.Application()
-    async def index(request):
-        return web.Response(text="Bot is running successfully!")
-    app.router.add_get("/", index)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.environ.get("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
-# ==========================================
-#          BOTNI ISHGA TUSHIRISH
+#               MAIN
 # ==========================================
 async def main():
     await init_db()
-    bot._me = await bot.get_me() 
-    print(f"Bot ishga tushdi: @{bot._me.username}")
-    await bot.delete_webhook(drop_pending_updates=True)
-    
-    # Render uchun veb-serverni fonda ishga tushiramiz
-    asyncio.create_task(web_server())
-    
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
