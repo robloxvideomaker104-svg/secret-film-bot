@@ -1,14 +1,15 @@
 import asyncio
 import logging
+import os
 from datetime import datetime, timedelta
 import aiosqlite
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-import os
 
 # ==========================================
 #               SOZLAMALAR
@@ -487,8 +488,25 @@ async def send_broadcast_handler(message: types.Message, state: FSMContext):
 # ==========================================
 #               MAIN
 # ==========================================
+async def handle(request):
+    return web.Response(text="Bot runs fine!")
+
 async def main():
     await init_db()
+    
+    # Webhookni va to'planib qolgan xabarlarni tozalaymiz
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    # Render port so'rab kutib turmasligi uchun kichik HTTP server
+    app = web.Application()
+    app.router.add_get('/', handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 8080))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+
+    # Botni polling rejimida yurgizamiz
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
