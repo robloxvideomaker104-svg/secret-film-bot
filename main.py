@@ -488,25 +488,25 @@ async def send_broadcast_handler(message: types.Message, state: FSMContext):
 # ==========================================
 #               MAIN
 # ==========================================
-async def handle(request):
-    return web.Response(text="Bot runs fine!")
+async def handle_ping(request):
+    return web.Response(text="Bot ishlamoqda!")
 
 async def main():
     await init_db()
     
-    # Webhookni va to'planib qolgan xabarlarni tozalaymiz
+    # Eski webhooklarni va navbatda turgan xabarlarni tozalaymiz
     await bot.delete_webhook(drop_pending_updates=True)
     
-    # Render port so'rab kutib turmasligi uchun kichik HTTP server
+    # Render ajratgan PORT ni olish va HTTP server yaratish
+    port = int(os.environ.get("PORT", 8080))
     app = web.Application()
-    app.router.add_get('/', handle)
+    app.router.add_get("/", handle_ping)
     runner = web.AppRunner(app)
     await runner.setup()
-    port = int(os.environ.get("PORT", 8080))
-    site = web.TCPSite(runner, '0.0.0.0', port)
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    # Botni polling rejimida yurgizamiz
+    # aiogram polling ni boshlash
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
