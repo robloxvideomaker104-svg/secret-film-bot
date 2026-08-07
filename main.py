@@ -21,15 +21,12 @@ CARD_OWNER = "AZIZBEK K"
 # FAQAT SHU KANAL TEKSHIRILADI:
 MAIN_CHANNEL = "@azizakabott"
 
-# TUGMADA KO'RINADIGAN ZAYAVKA KANALLAR (Bot bularni tekshirmaydi):
+# TUGMADA KO'RINADIGAN ZAYAVKA KANALLAR (Bot bularni TEKSHIRMAYDI, shunchaki tugma):
 CHANNELS_TO_SHOW = [
     {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+CAaOszXRNudkZmMy"},
     {"name": "📢 2 - Zayavka Kanal", "url": "https://t.me/+iHpCgbHqot83Y2M6"},
     {"name": "⭐️ Asosiy Kanal", "url": f"https://t.me/{MAIN_CHANNEL[1:]}"}
 ]
-
-# STIKERLAR (Ixtiyoriy o'zingizning stiker file_id laringizni qo'yishingiz mumkin)
-WELCOME_STICKER = "CAACAgIAAxkBAAE..."  # Start uchun stiker file_id (bo'sh qolsa ham xato bermaydi)
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -99,12 +96,12 @@ def get_sub_keyboard():
     for ch in CHANNELS_TO_SHOW:
         builder.append([InlineKeyboardButton(text=ch["name"], url=ch["url"])])
     
-    builder.append([InlineKeyboardButton(text="⚡️ <b>TEKSHIRISH</b> ⚡️", callback_data="check_sub")])
+    builder.append([InlineKeyboardButton(text="⚡️ TEKSHIRISH ⚡️", callback_data="check_sub")])
     return InlineKeyboardMarkup(inline_keyboard=builder)
 
 main_reply_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="💎 <b>PREMIUM VIP</b> 💎")]
+        [KeyboardButton(text="💎 PREMIUM VIP 💎")]
     ],
     resize_keyboard=True
 )
@@ -114,10 +111,10 @@ main_reply_keyboard = ReplyKeyboardMarkup(
 # ==========================================
 def get_tariffs_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚡️ <b>1 KUNLIK OBUNA — 5 000 SO'M</b> ⚡️", callback_data=TariffCB(days=1, price=5000).pack())],
-        [InlineKeyboardButton(text="🔥 <b>1 HAFTALIK OBUNA — 10 000 SO'M</b> 🔥", callback_data=TariffCB(days=7, price=10000).pack())],
-        [InlineKeyboardButton(text="👑 <b>1 OYLIK OBUNA — 20 000 SO'M</b> 👑", callback_data=TariffCB(days=30, price=20000).pack())],
-        [InlineKeyboardButton(text="◀️ <b>ORQAGA</b> ◀️", callback_data="back_to_start")]
+        [InlineKeyboardButton(text="⚡️ 1 KUNLIK OBUNA — 5 000 SO'M ⚡️", callback_data=TariffCB(days=1, price=5000).pack())],
+        [InlineKeyboardButton(text="🔥 1 HAFTALIK OBUNA — 10 000 SO'M 🔥", callback_data=TariffCB(days=7, price=10000).pack())],
+        [InlineKeyboardButton(text="👑 1 OYLIK OBUNA — 20 000 SO'M 👑", callback_data=TariffCB(days=30, price=20000).pack())],
+        [InlineKeyboardButton(text="◀️ ORQAGA ◀️", callback_data="back_to_start")]
     ])
 
 # ==========================================
@@ -215,8 +212,8 @@ async def tariff_selected_handler(call: types.CallbackQuery, callback_data: Tari
         "📸 <b>Pulni o'tkazgandan so'ng, chekni (skrinshotni) yuborish uchun pastdagi tugmani bosing!</b> ⬇️"
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📤 <b>CHEK RASMINI YUBORISH</b> 📤", callback_data="send_receipt")],
-        [InlineKeyboardButton(text="◀️ <b>ORQAGA</b> ◀️", callback_data="premium_menu")]
+        [InlineKeyboardButton(text="📤 CHEK RASMINI YUBORISH 📤", callback_data="send_receipt")],
+        [InlineKeyboardButton(text="◀️ ORQAGA ◀️", callback_data="premium_menu")]
     ])
     await call.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
@@ -235,8 +232,8 @@ async def receipt_received_handler(message: types.Message, state: FSMContext):
     
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="✅ <b>Tasdiqlash</b>", callback_data=ApproveCB(user_id=message.from_user.id, days=days).pack()),
-            InlineKeyboardButton(text="❌ <b>Rad etish</b>", callback_data=RejectCB(user_id=message.from_user.id).pack())
+            InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=ApproveCB(user_id=message.from_user.id, days=days).pack()),
+            InlineKeyboardButton(text="❌ Rad etish", callback_data=RejectCB(user_id=message.from_user.id).pack())
         ]
     ])
     
@@ -396,7 +393,7 @@ async def find_movie_handler(message: types.Message):
             "❗ <b>Premium obunaga ega bo'ling.</b> 🚀"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 <b>PREMIUM OLISH</b> 💎", callback_data="premium_menu")]
+            [InlineKeyboardButton(text="💎 PREMIUM OLISH 💎", callback_data="premium_menu")]
         ])
         await message.reply(text, reply_markup=kb, parse_mode="HTML")
         return
@@ -425,8 +422,8 @@ async def add_movie_handler(message: types.Message):
 @dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin_panel_handler(message: types.Message):
     btn = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 <b>Statistika</b>", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📢 <b>Xabar tarqatish</b>", callback_data="admin_broadcast")]
+        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
     ])
     await message.answer("👨‍💻 <b>Admin panelga xush kelibsiz!</b> ⚙️\n\n<b>Quyidagi menyudan kerakli bo'limni tanlang:</b>", reply_markup=btn, parse_mode="HTML")
 
@@ -441,14 +438,14 @@ async def admin_stats_handler(call: types.CallbackQuery):
         f"👥 <b>Jami obunachilar:</b> <b>{users_count[0]}</b> ta\n"
         f"🎬 <b>Bazadagi kinolar:</b> <b>{movies_count[0]}</b> ta"
     )
-    back_btn = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ <b>Orqaga</b>", callback_data="admin_back")]])
+    back_btn = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Orqaga", callback_data="admin_back")]])
     await call.message.edit_text(text, reply_markup=back_btn, parse_mode="HTML")
 
 @dp.callback_query(F.data == "admin_back", F.from_user.id == ADMIN_ID)
 async def admin_back_handler(call: types.CallbackQuery):
     btn = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 <b>Statistika</b>", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📢 <b>Xabar tarqatish</b>", callback_data="admin_broadcast")]
+        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="📢 Xabar tarqatish", callback_data="admin_broadcast")]
     ])
     await call.message.edit_text("👨‍💻 <b>Admin panelga xush kelibsiz!</b> ⚙️\n\n<b>Quyidagi menyudan kerakli bo'limni tanlang:</b>", reply_markup=btn, parse_mode="HTML")
 
