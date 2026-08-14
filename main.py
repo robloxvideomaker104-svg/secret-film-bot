@@ -24,7 +24,7 @@ MAIN_CHANNEL = "@azizakabott"
 
 # TUGMADA KO'RINADIGAN ZAYAVKA KANALLAR (Bot bularni TEKSHIRMAYDI, shunchaki tugma):
 CHANNELS_TO_SHOW = [
-    {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+CAaOszXRNudkZmMy"},
+    {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+lWqUqglt4gY0MzZi"},
     {"name": "📢 2 - Zayavka Kanal", "url": "https://t.me/+iHpCgbHqot83Y2M6"},
     {"name": "⭐️ Asosiy Kanal", "url": f"https://t.me/{MAIN_CHANNEL[1:]}"}
 ]
