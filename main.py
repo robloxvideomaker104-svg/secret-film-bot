@@ -27,6 +27,8 @@ CHANNELS_TO_SHOW = [
     {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+T18e9PRtGvc3YTVi"},
     {"name": "📢 2 - Zayavka Kanal", "url": "https://t.me/+7WZq-XFqfV8xOGJi"},
     {"name": "📢 3 - Zayavka Kanal", "url": "https://t.me/+KCVjlG4aF7E4NWMx"},
+    {"name": "📢 4 - Zayavka Kanal", "url": "https://t.me/+ldq9ICoMt8MyZTcy"},
+    {"name": "📢 5 - Zayavka Kanal", "url": "https://t.me/+pEulHeoiN-NkOTcy"},
     {"name": "⭐️ Asosiy Kanal", "url": f"https://t.me/{MAIN_CHANNEL[1:]}"}
 ]
 
