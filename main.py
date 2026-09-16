@@ -26,8 +26,8 @@ MAIN_CHANNEL = "@azizakabott"
 CHANNELS_TO_SHOW = [
     {"name": "📢 1 - Zayavka Kanal", "url": "https://t.me/+Oy6GahaLIqA4Mzky"},
     {"name": "📢 2 - Zayavka Kanal", "url": "https://t.me/+IFywdbOnowEzNDVi"},
-    {"name": "📢 3 - Zayavka Kanal", "url": "https://t.me/+hzt37nfxFmBjNGMy"},
-    {"name": "📢 4 - Zayavka Kanal", "url": "https://t.me/+YAvZ0enRaghhM2Vi"},
+    {"name": "📢 3 - Zayavka Kanal", "url": "https://t.me/+KMDYfa_XyYY3MmNi"},
+    {"name": "📢 4 - Zayavka Kanal", "url": "https://t.me/+r5UP5z2I-1UxMGNi"},
     {"name": "📢 5 - Zayavka Kanal", "url": "https://t.me/+k1KOugkHHG02MmRi"},
     {"name": "⭐️ Asosiy Kanal", "url": f"https://t.me/{MAIN_CHANNEL[1:]}"}
 ]
