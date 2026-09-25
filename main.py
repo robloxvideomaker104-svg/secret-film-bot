@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import os
+import random
+import string
 from datetime import datetime, timedelta
 import aiosqlite
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, BufferedInputFile
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.state import StatesGroup, State
@@ -49,7 +51,8 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 premium_until DATETIME,
-                joined_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                joined_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                source_ref TEXT
             )
         """)
         await db.execute("""
@@ -66,12 +69,29 @@ async def init_db():
                 type TEXT
             )
         """)
+        # Adminlar yaratadigan referal havolalar jadvali
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS ref_links (
+                code TEXT PRIMARY KEY,
+                name TEXT,
+                clicks_count INTEGER DEFAULT 0
+            )
+        """)
         await db.commit()
 
-async def add_user(user_id):
+async def add_user(user_id: int, ref_code: str = None):
     async with aiosqlite.connect("bot_database.db") as db:
-        await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-        await db.commit()
+        async with db.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,)) as cursor:
+            exists = await cursor.fetchone()
+
+        if not exists:
+            # Yangi foydalanuvchini bazaga qo'shish
+            await db.execute("INSERT INTO users (user_id, source_ref) VALUES (?, ?)", (user_id, ref_code))
+            
+            # Agar admin yaratgan referal kodi orqali kirgan bo'lsa, sanoqni +1 oshirish
+            if ref_code:
+                await db.execute("UPDATE ref_links SET clicks_count = clicks_count + 1 WHERE code = ?", (ref_code,))
+            await db.commit()
 
 async def is_premium(user_id) -> bool:
     async with aiosqlite.connect("bot_database.db") as db:
@@ -132,7 +152,7 @@ main_reply_keyboard = ReplyKeyboardMarkup(
 # ADMIN PANEL TUGMALARI
 admin_reply_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📢 Kanallarni sozlash")],
+        [KeyboardButton(text="📢 Kanallarni sozlash"), KeyboardButton(text="🔗 Referal Havolalar")],
         [KeyboardButton(text="🎬 Kino Yuklash"), KeyboardButton(text="📬 Xabar Yuborish")],
         [KeyboardButton(text="📊 Statistika"), KeyboardButton(text="📁 Backup")],
         [KeyboardButton(text="📥 Bazani Tiklash (Restore)"), KeyboardButton(text="◀️ Orqaga")]
@@ -158,16 +178,19 @@ class AdminState(StatesGroup):
     waiting_for_broadcast = State()
     waiting_for_channel_info = State()
     waiting_for_restore_db = State()
+    waiting_for_ref_name = State()
 
 class PaymentState(StatesGroup):
     waiting_for_receipt = State()
 
 # ==========================================
-#        FOYDALANUVCHI HANDLERLARI
+#         FOYDALANUVCHI HANDLERLARI
 # ==========================================
 @dp.message(CommandStart())
-async def start_handler(message: types.Message):
-    await add_user(message.from_user.id)
+async def start_handler(message: types.Message, command: CommandObject):
+    ref_code = command.args if command.args else None
+
+    await add_user(message.from_user.id, ref_code)
     subscribed = await check_subscription(message.from_user.id)
     
     if subscribed:
@@ -205,7 +228,7 @@ async def back_to_start_handler(call: types.CallbackQuery):
         chat=call.message.chat,
         from_user=call.from_user
     )
-    await start_handler(fake_msg)
+    await start_handler(fake_msg, command=CommandObject(prefix="/", command="start"))
 
 @dp.message(F.text.contains("PREMIUM VIP") | (F.text == "💎 Premium"))
 async def premium_text_handler(message: types.Message):
@@ -384,6 +407,63 @@ async def admin_panel_handler(message: types.Message):
         parse_mode="HTML"
     )
 
+# --- ADMIN REFERAL HAVOLALAR BO'LIMI ---
+@dp.message(F.text == "🔗 Referal Havolalar", F.from_user.id.in_(ADMIN_IDS))
+async def admin_ref_menu(message: types.Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Yangi Havola Yaratish", callback_data="add_ref_start")],
+        [InlineKeyboardButton(text="📊 Havolalar Statistikasi", callback_data="list_ref_links")]
+    ])
+    await message.answer("🔗 <b>ADMIN REFERAL MANBALARI</b>\n\nUshbu bo'limda reklama yoki hamkorlar uchun maxsus taklif havolalarini yaratishingiz va kuzatishingiz mumkin:", reply_markup=kb, parse_mode="HTML")
+
+@dp.callback_query(F.data == "add_ref_start", F.from_user.id.in_(ADMIN_IDS))
+async def add_ref_start_handler(call: types.CallbackQuery, state: FSMContext):
+    await call.message.answer("✍️ <b>Yangi havola uchun nom kiriting:</b>\n<i>(Masalan: Instagram reklama, Blogger X, Telegram Kanal 1)</i>", parse_mode="HTML")
+    await state.set_state(AdminState.waiting_for_ref_name)
+    await call.answer()
+
+@dp.message(AdminState.waiting_for_ref_name, F.from_user.id.in_(ADMIN_IDS))
+async def save_ref_link_handler(message: types.Message, state: FSMContext):
+    ref_name = message.text.strip()
+    # Tasodifiy unikal kod yaratish
+    ref_code = "ref_" + ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    
+    async with aiosqlite.connect("bot_database.db") as db:
+        await db.execute("INSERT INTO ref_links (code, name) VALUES (?, ?)", (ref_code, ref_name))
+        await db.commit()
+
+    bot_info = await bot.get_me()
+    full_link = f"https://t.me/{bot_info.username}?start={ref_code}"
+
+    text = (
+        "✅ <b>Yangi referal havola muvaffaqiyatli yaratildi!</b> 🎉\n\n"
+        f"📌 <b>Nom:</b> <b>{ref_name}</b>\n"
+        f"🔗 <b>Havola:</b> <code>{full_link}</code>\n\n"
+        "💡 <i>Ushbu havolani reklamaga berishingiz mumkin. Botga shu havola orqali kirganlar avtomatik hisoblanadi.</i>"
+    )
+    await message.answer(text, parse_mode="HTML", reply_markup=admin_reply_keyboard)
+    await state.clear()
+
+@dp.callback_query(F.data == "list_ref_links", F.from_user.id.in_(ADMIN_IDS))
+async def list_ref_links_handler(call: types.CallbackQuery):
+    async with aiosqlite.connect("bot_database.db") as db:
+        async with db.execute("SELECT code, name, clicks_count FROM ref_links") as cursor:
+            rows = await cursor.fetchall()
+
+    if not rows:
+        await call.message.answer("📊 <b>Hozircha hech qanday referal havola yaratilmagan.</b>", parse_mode="HTML")
+        await call.answer()
+        return
+
+    bot_info = await bot.get_me()
+    text = "📊 <b>REFERAL HAVOLALAR STATISTIKASI:</b>\n\n"
+    for code, name, count in rows:
+        link = f"https://t.me/{bot_info.username}?start={code}"
+        text += f"📌 <b>{name}</b>\n🔗 <code>{link}</code>\n👥 Kelgan foydalanuvchilar: <b>{count} ta</b>\n➖➖➖➖➖➖➖➖\n"
+
+    await call.message.answer(text, parse_mode="HTML", disable_web_page_preview=True)
+    await call.answer()
+
 @dp.message(Command("prem"), F.from_user.id.in_(ADMIN_IDS))
 async def cmd_prem(message: types.Message):
     args = message.text.split()
@@ -470,7 +550,6 @@ async def restore_process_handler(message: types.Message, state: FSMContext):
         with open("bot_database.db", "wb") as new_db:
             new_db.write(downloaded_file.read())
 
-        # Restore qilingandan keyin jadvallar eski bo'lsa ham xatolik bermasligi uchun tuzilmani yangilab olamiz
         await init_db()
 
         await message.answer("✅ <b>Ma'lumotlar bazasi muvaffaqiyatli tiklandi (Restore qilindi)!</b> 🎉", parse_mode="HTML", reply_markup=admin_reply_keyboard)
@@ -479,10 +558,10 @@ async def restore_process_handler(message: types.Message, state: FSMContext):
         await message.reply(f"❌ Xatolik yuz berdi: {e}", reply_markup=admin_reply_keyboard)
         await state.clear()
 
-# 1. KANALLARNI SOZLASH (Xatoliklarga qarshi himoyalangan)
+# 1. KANALLARNI SOZLASH
 @dp.message(F.text == "📢 Kanallarni sozlash", F.from_user.id.in_(ADMIN_IDS))
 async def channels_settings_menu(message: types.Message):
-    await init_db()  # Jadval mavjudligini kafolatlash uchun
+    await init_db()
     async with aiosqlite.connect("bot_database.db") as db:
         async with db.execute("SELECT id, chat_id, name, type FROM channels") as cursor:
             channels = await cursor.fetchall()
@@ -606,7 +685,7 @@ async def send_broadcast_handler(message: types.Message, state: FSMContext):
     await message.answer(f"✅ <b>Xabar {count} ta foydalanuvchiga muvaffaqiyatli yuborildi!</b> 🎉", parse_mode="HTML", reply_markup=admin_reply_keyboard)
     await state.clear()
 
-# 4. STATISTIKA (Xatoliklarga qarshi tekshiruv bilan)
+# 4. STATISTIKA
 @dp.message(F.text == "📊 Statistika", F.from_user.id.in_(ADMIN_IDS))
 async def stats_menu(message: types.Message):
     await init_db()
@@ -652,7 +731,7 @@ async def stats_menu(message: types.Message):
     await message.answer(text, reply_markup=admin_reply_keyboard, parse_mode="HTML")
 
 # ==========================================
-#                MAIN
+#                  MAIN
 # ==========================================
 async def handle_ping(request):
     return web.Response(text="Bot ishlamoqda!")
